@@ -52,7 +52,7 @@ cli
 	.option('-v, verbose', 'show verbose git output');
 
 cli.on('--help', function(){
-	console.log('  Examples:');
+	console.log('  Examples:'.blue.bold);
 	console.log('');
 	console.log('    $ release.js --create-release --minor --commit');
 	console.log('      Create a new release branch from develop, increment the minor version number, and commit the result.');
@@ -230,9 +230,9 @@ var main = function () {
 		// Output current status
 		methods.file.read(path.resolve(cli.package), function (doc) {
 			console.log('Status');
-			console.log('  Working on: %s %s', doc.name.blue, doc.version.blue);
+			console.log('  Current release: %s %s', doc.name.blue, doc.version.blue);
 			console.log('  With a package located at: %s', path.resolve(cli.package).blue);
-			console.log('  Working tree is %s, current branch is %s.', dirty ? 'dirty' : 'clean', properties.branch.execution.blue);
+			console.log('  Working tree is %s, current branch is %s.', dirty ? 'dirty'.underline : 'clean', properties.branch.execution.blue);
 			if (!dirty) {
 				console.log(properties.branch.exists.release ? '  You cannot create a release branch, one already exists.' : '  You may create a release branch with "' + 'ripple start release bump <major/minor/revision>'.bold + '"');
 				console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "' + 'ripple start hotfix'.bold + '"');
@@ -242,16 +242,16 @@ var main = function () {
 	} else if (cli.start) {
 		console.log('Starting %s branch', cli.start);
 		if (dirty && cli.start !== 'feature') {
-			console.log('error: '.red + 'Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
+			console.log('error: '.red.bold + 'Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
 		if (cli.bump !== 'major' && cli.bump !== 'minor' && (cli.bump !== 'revision' && cli.start === 'release')) {
-			console.log('error: '.red + 'Can\'t create a new release without bumping version. %s', defaultMessage);
+			console.log('error: '.red.bold + 'Can\'t create a new release without bumping version. %s', defaultMessage);
 			process.exit(1);
 		}
 		if (cli.start === 'feature') {
 			if (!cli.called) {
-				console.log('error: '.red + 'When starting a new feature, use the called flag. i.e. "ripple start feature called my_feature".');
+				console.log('error: '.red.bold + 'When starting a new feature, use the called flag. i.e. "ripple start feature called my_feature".');
 				process.exit(1);
 			}
 			methods.document.read('master', function () {
@@ -266,7 +266,7 @@ var main = function () {
 			});
 		} else if (cli.start === 'release') {
 			if (properties.branch.exists.release) {
-				console.log('error: '.red + 'You already have a release branch!');
+				console.log('error: '.red.bold + 'You already have a release branch!');
 				process.exit(1);
 			}
 			methods.document.read('develop', function () {
@@ -287,7 +287,7 @@ var main = function () {
 			});
 		} else if (cli.start === 'hotfix') {
 			if (properties.branch.exists.hotfix) {
-				console.log('error: '.red + 'You already have a hotfix branch!');
+				console.log('error: '.red.bold + 'You already have a hotfix branch!');
 				process.exit(1);
 			}
 			methods.document.read('master', function (doc) {
@@ -312,15 +312,15 @@ var main = function () {
 	} else if (cli.finish) {
 		console.log('Finishing %s branch', cli.finish);
 		if (dirty) {
-			console.log('error: '.red + 'Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
+			console.log('error: '.red.bold + 'Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
 		if (properties.branch.exists.release && properties.branch.exists.hotfix && cli.finish === 'release') {
-			console.log('error: '.red + 'You must finish your hotfix before finishing your release.');
+			console.log('error: '.red.bold + 'You must finish your hotfix before finishing your release.');
 			process.exit(1);
 		}
 		if (cli.finish === 'feature' && (properties.branch.isRelease || properties.branch.isHotfix || properties.branch.execution === 'master' || properties.branch.execution === 'develop')) {
-			console.log('error: '.red + 'Finishing a feature requires that you have it\'s branch already checked out.');
+			console.log('error: '.red.bold + 'Finishing a feature requires that you have it\'s branch already checked out.');
 			process.exit(1);
 		}
 		if (cli.finish === 'feature') {
@@ -391,7 +391,7 @@ var main = function () {
 					})
 					.send('git merge --no-ff ' + properties.branch.release, function (e, next, stdout) {
 						if (e) {
-							console.log('error: '.red + 'Merge failed.');
+							console.log('error: '.red.bold + 'Merge failed.');
 							console.log(stdout);
 						} else {
 							if (cli.verbose) console.log(stdout.grey);
@@ -506,7 +506,7 @@ var main = function () {
 		// Just update revision
 		console.log('Bumping version number');
 		if (!properties.branch.isRelease) {
-			console.log('error: '.red + 'You can only manually bump versions on a release branch.');
+			console.log('error: '.red.bold + 'You can only manually bump versions on a release branch.');
 			process.exit(1);
 		}
 		methods.document.read('HEAD', function () {
@@ -516,7 +516,7 @@ var main = function () {
 			}, 'release');
 		});
 	} else {
-		console.log('error: '.red + 'Nothing to do. %s', defaultMessage);
+		console.log('error: '.red.bold + 'Nothing to do. %s', defaultMessage);
 	}
 };
 
@@ -524,17 +524,28 @@ var main = function () {
  * Preload all state info.
  */
 (new Exec())
+	.send('git status', function (e, next, stdout, stderr) {
+		if (cli.verbose) console.log(stdout.grey);
+		if (stderr.indexOf('fatal') !== -1) {
+			console.log('error: '.red.bold + 'git says this isn\'t a repository. Are you in the right folder?');
+			process.exit(1);
+		}
+		next();
+	})
 	.send('git status|grep -c "working directory clean"', function (e, next, stdout) {
 		dirty = stdout.trim() === '0';
+		if (cli.verbose) console.log('working directory %s'.grey, dirty ? 'dirty' : 'clean');
 		next();
 	})
 	.send('git branch --no-color|sed -e "/^[^*]/d" -e "s/* \(.*\)/\ \1/"', function (e, next, stdout) {
+		if (cli.verbose) console.log(stdout.grey);
 		properties.branch.execution = stdout.trim().slice(2);
 		properties.branch.isRelease = properties.branch.execution.indexOf('release') !== -1;
 		properties.branch.isHotfix = properties.branch.execution.indexOf('hotfix') !== -1;
 		next();
 	})
 	.send('git branch|grep release', function (e, next, stdout) {
+		if (cli.verbose) console.log(stdout.grey);
 		properties.branch.exists.release = stdout.trim().length > 0;
 		properties.branch.release = stdout.trim();
 		if (properties.branch.release.indexOf('*') !== -1) {
