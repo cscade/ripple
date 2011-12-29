@@ -149,7 +149,7 @@ methods.file.read = function (uri, next) {
  */
 methods.file.write = function (doc, uri, next) {
 	if (cli.debug) console.error('debug: file.write called.');
-	fs.writeFile(uri, JSON.stringify(doc, null, 4), 'utf8', function (e, data) {
+	fs.writeFile(uri, JSON.stringify(doc, null, 4), 'utf8', function (e) {
 		if (e) {
 			console.error('error: %s could not be written.');
 			process.exit(1);
@@ -195,7 +195,7 @@ methods.document.read = function (branch, next) {
  * @param {Function} proceed
  * @param {String} alias
  */
-methods.document.write = function (doc, proceed, alias) {
+methods.document.write = function (proceed, alias) {
 	if (cli.debug) console.error('debug: document.write called.');
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
 		if (!cli.noCommit) {
@@ -365,7 +365,7 @@ var main = function () {
 			// Release integration
 			// checkout master, merge in release, checkout develop, merge in release, delete release
 			methods.document.read('HEAD', function () {
-				excc
+				exec
 					.begin('git checkout master', function (e, next) {
 						if (e) {
 							console.log(e.message);
@@ -384,14 +384,14 @@ var main = function () {
 							next();
 						}
 					})
-					.send('git tag -a ' + methods.document.object.version + ' -m "version ' + methods.document.object.version + '"', function (e) {
+					.send('git tag -a ' + methods.document.object.version + ' -m "version ' + methods.document.object.version + '"', function (e, next) {
 						if (e) {
 							console.log(e.message);
 						} else {
 							next();
 						}
 					})
-					.send('git checkout develop', function (e) {
+					.send('git checkout develop', function (e, next) {
 						if (e) {
 							console.log(e.message);
 						} else {
