@@ -48,8 +48,8 @@ cli
 	.option('finish <kind>', 'Finish and merge the current release or hotfix branch. Always commits! [release | hotfix]')
 	.option('-p, package <location>', 'Relative path of package.json file to modify [./package.json]', './package.json')
 	.option('-n, no-commit', 'Do not commit version changes automatically')
-	.option('-d, debug', 'debug output')
-	.option('-v, verbose', 'verbose git output');
+	.option('-d, debug', 'show debug output')
+	.option('-v, verbose', 'show verbose git output');
 
 cli.on('--help', function(){
 	console.log('  Examples:');
@@ -78,7 +78,7 @@ cli.commit = !cli.commit;
  * @param {Function} next
  */
 methods.file.read = function (uri, next) {
-	if (cli.debug) console.error('debug:'.grey.inverse + ' file.read called.');
+	if (cli.debug) console.error('debug:'.grey.inverse + ' file.read "%s"', uri.bold);
 	fs.readFile(uri, 'utf8', function (e, data) {
 		if (e) {
 			console.error('error: '.red + '%s could not be read. File does not exist.', uri);
@@ -105,7 +105,7 @@ methods.file.read = function (uri, next) {
  * @param {Function} next
  */
 methods.file.write = function (doc, uri, next) {
-	if (cli.debug) console.error('debug:'.grey.inverse + ' file.write called.');
+	if (cli.debug) console.error('debug:'.grey.inverse + ' file.write "%s"', uri.bold);
 	fs.writeFile(uri, JSON.stringify(doc, null, 4), 'utf8', function (e) {
 		if (e) {
 			console.error('error: '.red + '%s could not be written.');
