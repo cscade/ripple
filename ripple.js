@@ -19,6 +19,9 @@ var methods = {
 			from: '',
 			to: ''
 		}
+	},
+	branch: {
+		
 	}
 };
 
@@ -224,6 +227,23 @@ methods.document.increment = function () {
 	}
 	console.log('*** Updating version: %s -> %s', methods.document.version.from, methods.document.version.to.join('.'));
 	methods.document.object.version = methods.document.version.to.join('.');
+};
+
+
+/**
+ * checkout
+ * 
+ * @param {String} branch
+ * @param {Function} next
+ */
+methods.branch.checkout = function (branch, next) {
+	(new Exec()).send('git checkout ' + branch, function (e) {
+		if (e) {
+			console.log(e.message);
+		} else {
+			next();
+		}
+	});
 };
 
 /**
