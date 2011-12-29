@@ -48,6 +48,7 @@ var exec = {
 		this.queue = [];
 		this.send(args, next);
 		process.nextTick(function () {
+			if (cli.debug) console.error('debug: next tick. calling next.');
 			exec.next();
 		});
 		return this;
