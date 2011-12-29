@@ -1,7 +1,7 @@
 {
     "name": "ripple",
-    "version": "0.0.7",
-    "description": "git repository & branch manager.",
+    "version": "0.0.8",
+    "description": "git repository & branch manager, with release tools.",
     "keywords": [
         "git",
         "repository",
@@ -17,12 +17,10 @@
         "type": "git",
         "url": "git://github.com/cscade/ripple.git"
     },
-    "bin": { "ripple": "./ripple.js" },
     "engines": {
         "node": "0.6.x"
     },
     "dependencies": {
-        "commander": ">= 0.0.0",
-        "colors": ">= 0.0.0"
+        "commander": ">= 0.0.0"
     }
 }
