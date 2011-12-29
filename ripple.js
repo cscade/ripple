@@ -156,7 +156,7 @@ methods.document.write = function (proceed, alias) {
 	if (cli.debug) console.error('debug:'.grey.inverse + ' document.write called.');
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
 		if (cli.commit) {
-			console.log('  commiting changes');
+			console.log('  commiting changes'.blue);
 			(new Exec())
 				.send('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, next, stdout) {
 					if (e) {
@@ -216,7 +216,7 @@ methods.document.increment = function () {
 		methods.document.version.to[1] = 0;
 		methods.document.version.to[2] = 0;
 	}
-	console.log('  updating version: %s -> %s', methods.document.version.from, methods.document.version.to.join('.'));
+	console.log('  updating version: %s -> %s'.blue, methods.document.version.from, methods.document.version.to.join('.'));
 	methods.document.object.version = methods.document.version.to.join('.');
 };
 
@@ -237,7 +237,7 @@ var main = function () {
 				console.log(properties.branch.exists.release ? '  You cannot create a release branch, one already exists.' : '  You may create a release branch with "ripple start release bump <major/minor/revision>"');
 				console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "ripple start hotfix"');
 			}
-			console.log('ok.'.green);
+			console.log('ok.'.green.bold);
 		});
 	} else if (cli.start) {
 		console.log('Starting %s branch', cli.start);
@@ -260,7 +260,7 @@ var main = function () {
 					if (e) {
 						console.log(e.message);
 					} else {
-						console.log('ok.'.green);
+						console.log('ok.'.green.bold);
 					}
 				});
 			});
@@ -280,7 +280,7 @@ var main = function () {
 						console.log(e.message);
 					} else {
 						methods.document.write(function () {
-							console.log('ok.'.green);
+							console.log('ok.'.green.bold);
 						});
 					}
 				});
@@ -303,7 +303,7 @@ var main = function () {
 						console.log(e.message);
 					} else {
 						methods.document.write(function () {
-							console.log('ok.'.green);
+							console.log('ok.'.green.bold);
 						});
 					}
 				});
@@ -349,7 +349,7 @@ var main = function () {
 						console.log(e.message);
 					} else {
 						if (cli.verbose) console.log(stdout.grey);
-						console.log('ok.'.green);
+						console.log('ok.'.green.bold);
 					}
 				});
 		} else if (cli.finish === 'release') {
@@ -404,7 +404,7 @@ var main = function () {
 							console.log(e.message);
 						} else {
 							if (cli.verbose) console.log(stdout.grey);
-							console.log('ok.'.green);
+							console.log('ok.'.green.bold);
 						}
 					});
 			});
@@ -465,7 +465,7 @@ var main = function () {
 											console.log('note'.underline + ': if you would prefer a different release version, run "ripple bump <major/minor/revision>".');
 											methods.document.increment();
 											methods.document.write(function () {
-												console.log('ok.'.green);
+												console.log('ok.'.green.bold);
 											}, 'release');
 										}
 									});
@@ -494,7 +494,7 @@ var main = function () {
 											console.log(e.message);
 										} else {
 											if (cli.verbose) console.log(stdout.grey);
-											console.log('ok.'.green);
+											console.log('ok.'.green.bold);
 										}
 									});
 							}
@@ -512,7 +512,7 @@ var main = function () {
 		methods.document.read('HEAD', function () {
 			methods.document.increment();
 			methods.document.write(function () {
-				console.log('ok.'.green);
+				console.log('ok.'.green.bold);
 			}, 'release');
 		});
 	} else {
