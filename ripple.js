@@ -64,6 +64,7 @@ cli.on('--help', function(){
 });
 
 cli.parse(process.argv);
+cli.commit = !cli.commit;
 
 // Methods
 /**
@@ -152,7 +153,7 @@ methods.document.read = function (branch, next) {
 methods.document.write = function (proceed, alias) {
 	if (cli.debug) console.error('debug: document.write called.');
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
-		if (!cli.noCommit) {
+		if (cli.commit) {
 			console.log('  commiting changes');
 			(new Exec())
 				.send('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, next, stdout) {
