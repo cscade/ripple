@@ -336,7 +336,7 @@ var main = function () {
 				if (properties.branch.exists.release) {
 					console.log('warning: A release branch exists. You must finish the hotfix before finalizing the release.');
 				}
-				exec.begin('git checkout -b hotfix-' + doc.version + ' master', function (e) {
+				exec.begin('git checkout -b hotfix-' + methods.document.object.version + ' master', function (e) {
 					if (e) {
 						console.log(e.message);
 					} else {
