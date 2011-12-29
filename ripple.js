@@ -318,7 +318,6 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							console.log('  finalizing release branch');
 							console.log('  merging %s into master', properties.branch.release);
 							next();
 						}
