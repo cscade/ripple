@@ -309,21 +309,48 @@ var main = function () {
 			});
 		}
 	} else if (cli.finish) {
-		// Finish
 		console.log('Finishing %s branch', cli.finish);
 		if (dirty) {
 			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
-		if (!properties.branch.isRelease && !properties.branch.isHotfix) {
-			console.log('error: You can only finish a release or hotfix branch!');
-			process.exit(1);
-		}
-		if (properties.branch.exists.release && properties.branch.exists.hotfix && cli.finish !== 'hotfix') {
+		if (properties.branch.exists.release && properties.branch.exists.hotfix && cli.finish === 'release') {
 			console.log('error: You must finish your hotfix before finishing your release.');
 			process.exit(1);
 		}
-		if (cli.finish === 'release') {
+		if (cli.finish === 'feature' && (properties.branch.isRelease || properties.branch.isHotfix || properties.branch.execution === 'master' || properties.branch.execution === 'develop')) {
+			console.log('error: Finishing a feature requires that you have it\'s branch already checked out.');
+			process.exit(1);
+		}
+		if (cli.finish === 'feature') {
+			// Feature integration
+			// merge feature into develop, delete feature
+			(new Exec())
+				.send('git checkout develop', function (e, next) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						console.log('  merging %s into develop', properties.branch.execution);
+						next();
+					}
+				})
+				.send('git merge --no-ff ' + properties.branch.execution, function (e, next, stdout) {
+					if (e) {
+						console.log(stdout);
+					} else {
+						if (cli.verbose) console.log(stdout);
+						next();
+					}
+				})
+				.send('git branch -d ' + properties.branch.execution, function (e, next, stdout) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						if (cli.verbose) console.log(stdout);
+						console.log('ok.');
+					}
+				});
+		} else if (cli.finish === 'release') {
 			// Release integration
 			// merge release into master, merge release into develop, delete release
 			methods.document.read(properties.branch.release, function () {
