@@ -75,7 +75,7 @@ cli
 	.option('-h, create-hotfix', 'Create a new hotfix branch (from master)')
 	.option('-f, finalize', 'Integrate current release or hotfix branch')
 	.option('bump [part]', 'Bump version number [major | minor | revision]', 'revision')
-	.option('-p <location>', 'Relative path of package.json file to modify [./package.json]', './package.json')
+	.option('-p, package <location>', 'Relative path of package.json file to modify [./package.json]', './package.json')
 	.option('-c', 'Commit file changes automatically');
 
 cli.on('--help', function(){
