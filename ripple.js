@@ -305,7 +305,7 @@ var main = function () {
 			console.log('error: You can only finish a release or hotfix branch!');
 			process.exit(1);
 		}
-		if (properties.branch.isRelease && properties.branch.exists.hotfix) {
+		if (properties.branch.exists.release && properties.branch.exists.hotfix && cli.finish !== 'hotfix') {
 			console.log('error: You must finish your hotfix before finishing your release.');
 			process.exit(1);
 		}
@@ -318,7 +318,6 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							console.log('  finalizing release branch');
 							console.log('  merging %s into master', properties.branch.release);
 							next();
 						}
