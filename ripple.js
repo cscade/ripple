@@ -156,15 +156,24 @@ methods.file.write = function (doc, uri, next) {
  * 
  * Read in the document, and update local variables.
  * 
+ * @param {String} branch - branch to checkout before reading
  * @param {Function} next
  */
-methods.document.read = function (next) {
+methods.document.read = function (branch, next) {
 	if (cli.debug) console.error('debug: document.read called.');
-	methods.file.read(path.resolve(cli.package), function (doc) {
-		methods.document.object = doc;
-		methods.document.version.to = doc.version.split('.').map(Number);
-		methods.document.version.from = methods.document.version.to.filter(function () { return true; }).join('.');
-		next();
+	if (typeof branch !== 'string') throw new Error('Document: You must specify a branch to read package.json from.');
+	if (cli.debug) console.error('debug: checking out %s.', branch);
+	exec.begin('git checkout ' + branch, function (e) {
+		if (e) {
+			console.log(e.message);
+		} else {
+			methods.file.read(path.resolve(cli.package), function (doc) {
+				methods.document.object = doc;
+				methods.document.version.to = doc.version.split('.').map(Number);
+				methods.document.version.from = methods.document.version.to.filter(function () { return true; }).join('.');
+				next();
+			});
+		}
 	});
 };
 
@@ -287,22 +296,13 @@ var main = function () {
 				console.log('error: You already have a release branch!');
 				process.exit(1);
 			}
-			exec
-				.begin('git checkout master', function (e, stdout, stderr, next) {
-					if (e) {
-						console.log(e.message);
-					} else {
-						methods.document.read(function () {
-							methods.document.increment();
-							console.log('*** Creating new release branch...');
-							if (properties.branch.exists.hotfix) {
-								console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
-							}
-							next();
-						});
-					}
-				})
-				.send('git checkout -b release-' + methods.document.object.version + ' develop', function (e, stdout, stderr, next) {
+			methods.document.read('master', function () {
+				methods.document.increment();
+				console.log('*** Creating new release branch from "develop"...');
+				if (properties.branch.exists.hotfix) {
+					console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
+				}
+				exec.begin('git checkout -b release-' + methods.document.object.version + ' develop', function (e, stdout, stderr, next) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -311,30 +311,22 @@ var main = function () {
 						});
 					}
 				});
+			});
 		} else {
 			// Create hotfix
 			if (properties.branch.exists.hotfix) {
 				console.log('error: You already have a hotfix branch!');
 				process.exit(1);
 			}
-			exec
-				.begin('git checkout master', function (e, stdout, stderr, next) {
-					if (e) {
-						console.log(e.message);
-					} else {
-						methods.document.read(function (doc) {
-							// *** hotfixes imply a revision bump only. Ignore version bump flags
-							methods.document.version.to[2]++;
-							doc.version = methods.document.version.to.join('.');
-							console.log('*** Creating new hotfix branch...');
-							if (properties.branch.exists.release) {
-								console.log('warning: A release branch exists. You must finalize the hotfix before finalizing the release.');
-							}
-							next();
-						});
-					}
-				})
-				.send('git checkout -b hotfix-' + doc.version + ' master', function (e, stdout, stderr, next) {
+			methods.document.read('master', function (doc) {
+				// *** hotfixes imply a revision bump only. Ignore version bump flags
+				methods.document.version.to[2]++;
+				methods.document.object.version = methods.document.version.to.join('.');
+				console.log('*** Creating new hotfix branch from "master"...');
+				if (properties.branch.exists.release) {
+					console.log('warning: A release branch exists. You must finalize the hotfix before finalizing the release.');
+				}
+				exec.begin('git checkout -b hotfix-' + doc.version + ' master', function (e, stdout, stderr, next) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -343,6 +335,7 @@ var main = function () {
 						});
 					}
 				});
+			});
 		}
 	} else if (cli.finalize) {
 		// Finalize
