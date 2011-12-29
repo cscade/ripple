@@ -182,16 +182,7 @@ methods.document.write = function (proceed, alias) {
 				});
 		} else {
 			(new Exec())
-				.send('git status', function (e, next, stdout) {
-					if (e) {
-						console.log(e.message);
-					} else {
-						console.log(stdout);
-						// Show diff
-						next();
-					}
-				})
-				.send('git diff ' + path.resolve(cli.package), function (e, next, stdout) {
+				.send('git add ' + path.resolve(cli.package) + ' && git status', function (e, next, stdout) {
 					if (e) {
 						console.log(e.message);
 					} else {
