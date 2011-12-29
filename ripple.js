@@ -114,6 +114,7 @@ cli.parse(process.argv);
  * @param {Function} next
  */
 methods.file.read = function (uri, next) {
+	if (cli.debug) console.error('debug: file.read called.');
 	fs.readFile(uri, 'utf8', function (e, data) {
 		if (e) {
 			console.error('error: %s could not be read. File does not exist.', uri);
@@ -140,6 +141,7 @@ methods.file.read = function (uri, next) {
  * @param {Function} next
  */
 methods.file.write = function (doc, uri, next) {
+	if (cli.debug) console.error('debug: file.write called.');
 	fs.writeFile(uri, JSON.stringify(doc, null, 4), 'utf8', function (e, data) {
 		if (e) {
 			console.error('error: %s could not be written.');
@@ -160,6 +162,7 @@ methods.file.write = function (doc, uri, next) {
  * @param {Function} next
  */
 methods.document.read = function (next) {
+	if (cli.debug) console.error('debug: document.read called.');
 	methods.file.read(path.resolve(cli.package), function (doc) {
 		methods.document.version.to = doc.version.split('.').map(Number);
 		methods.document.version.from = methods.document.version.to.filter(function () { return true; }).join('.');
@@ -177,6 +180,7 @@ methods.document.read = function (next) {
  * @param {String} alias
  */
 methods.document.write = function (doc, proceed, alias) {
+	if (cli.debug) console.error('debug: document.write called.');
 	methods.file.write(doc, path.resolve(cli.package), function () {
 		if (cli.commit) {
 			console.log('*** Commiting changes...');
