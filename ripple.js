@@ -255,41 +255,43 @@ var main = function () {
 			console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "ripple start hotfix"');
 			console.log('ok.');
 		});
-	} else if (cli.createRelease || cli.createHotfix) {
 		if (dirty) {
 			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
-		if (cli.bump !== 'major' && cli.bump !== 'minor' && (cli.bump !== 'revision' && cli.createRelease)) {
+	} else if (cli.start) {
+		if (cli.bump !== 'major' && cli.bump !== 'minor' && (cli.bump !== 'revision' && cli.start === 'release')) {
 			console.log('error: Can\'t create a new release without bumping version. %s', defaultMessage);
 			process.exit(1);
 		}
-		if (cli.createRelease) {
+		if (cli.start === 'release') {
 			// Create release
 			if (properties.branch.exists.release) {
 				console.log('error: You already have a release branch!');
 				process.exit(1);
 			}
-			exec('git checkout master', function (e, stdout, stderr) {
-				if (e) {
-					console.log(e);
-				} else {
-					methods.document.read(function (doc) {
-						methods.document.increment(doc);
-						console.log('*** Creating new release branch...');
-						if (properties.branch.exists.hotfix) console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
-						exec('git checkout -b release-' + doc.version + ' develop', function (e, stdout, stderr) {
-							if (e) {
-								console.log(e);
-							} else {
-								methods.document.write(doc, function () {
-									console.log('ok.');
-								});
-							}
+			exec
+				.send('git checkout master', function (e, stdout, stderr, next) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						methods.document.read(function (doc) {
+							methods.document.increment(doc);
+							console.log('*** Creating new release branch...');
+							if (properties.branch.exists.hotfix) console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
+							next();
 						});
-					});
-				}
-			});
+					}
+				})
+				.send('git checkout -b release-' + doc.version + ' develop', function (e, stdout, stderr, next) {
+					if (e) {
+						console.log(e);
+					} else {
+						methods.document.write(doc, function () {
+							console.log('ok.');
+						});
+					}
+				});
 		} else {
 			// Create hotfix
 			if (properties.branch.exists.hotfix) {
