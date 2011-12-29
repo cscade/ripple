@@ -320,8 +320,8 @@ var main = function () {
 			}
 			methods.document.read('master', function (doc) {
 				// *** hotfixes imply a revision bump only. Ignore version bump flags
-				methods.document.version.to[2]++;
-				methods.document.object.version = methods.document.version.to.join('.');
+				cli.bump = 'revision';
+				methods.document.increment();
 				console.log('*** Creating new hotfix branch from "master"...');
 				if (properties.branch.exists.release) {
 					console.log('warning: A release branch exists. You must finalize the hotfix before finalizing the release.');
