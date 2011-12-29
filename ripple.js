@@ -43,6 +43,15 @@ var defaultMessage = 'Use --help for command line options.',
  * Automatically queues calls to exec, and guarantees execution order.
  */
 var exec = {
+	/**
+	 * begin
+	 * 
+	 * Start a new exec queue.
+	 * callback singature - next(e, next, stdout, stderr)
+	 * 
+	 * @param {String} args
+	 * @param {Function} next
+	 */
 	begin: function (args, next) {
 		if (cli.debug) console.error('debug: begin called. new exec queue.');
 		this.queue = [];
@@ -64,7 +73,7 @@ var exec = {
 	go: function (queueObj) {
 		if (queueObj) {
 			if (cli.debug) console.error('debug: go called. queue depth %s. "%s"', exec.queue.length, queueObj[0]);
-			systemExec(queueObj[0], function (e, stdout, stderr) { queueObj[1](e, stdout, stderr, exec.next); });
+			systemExec(queueObj[0], function (e, stdout, stderr) { queueObj[1](e, exec.next, stdout, stderr); });
 		} else {
 			if (cli.debug) console.error('debug warning: go called with no job. Look for an errant "next();".');
 		}
@@ -191,7 +200,7 @@ methods.document.write = function (doc, proceed, alias) {
 		if (!cli.noCommit) {
 			console.log('*** Commiting changes...');
 			exec
-				.begin('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, stdout, stderr, next) {
+				.begin('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, next, stdout) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -206,7 +215,7 @@ methods.document.write = function (doc, proceed, alias) {
 						}
 					}
 				})
-				.send('git branch -m ' + alias + '-' + methods.document.object.version, function (e, stdout, stderr, next) {
+				.send('git branch -m ' + alias + '-' + methods.document.object.version, function (e) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -217,7 +226,7 @@ methods.document.write = function (doc, proceed, alias) {
 				});
 		} else {
 			exec
-				.begin('git status', function (e, stdout, stderr, next) {
+				.begin('git status', function (e, next, stdout) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -226,7 +235,7 @@ methods.document.write = function (doc, proceed, alias) {
 						next();
 					}
 				})
-				.send('git diff ' + path.resolve(cli.package), function (e, stdout, stderr, next) {
+				.send('git diff ' + path.resolve(cli.package), function (e, next, stdout) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -302,7 +311,7 @@ var main = function () {
 				if (properties.branch.exists.hotfix) {
 					console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
 				}
-				exec.begin('git checkout -b release-' + methods.document.object.version + ' develop', function (e, stdout, stderr, next) {
+				exec.begin('git checkout -b release-' + methods.document.object.version + ' develop', function (e) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -326,7 +335,7 @@ var main = function () {
 				if (properties.branch.exists.release) {
 					console.log('warning: A release branch exists. You must finalize the hotfix before finalizing the release.');
 				}
-				exec.begin('git checkout -b hotfix-' + doc.version + ' master', function (e, stdout, stderr, next) {
+				exec.begin('git checkout -b hotfix-' + doc.version + ' master', function (e) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -518,21 +527,21 @@ var main = function () {
  * Preload all state info.
  */
 exec
-	.begin('git status|grep -c "working directory clean"', function (e, stdout, stderr, next) {
+	.begin('git status|grep -c "working directory clean"', function (e, next) {
 		dirty = stdout.trim() === '0';
 		next();
 	})
-	.send('git branch --no-color|sed -e "/^[^*]/d" -e "s/* \(.*\)/\ \1/"', function (e, stdout, stderr, next) {
+	.send('git branch --no-color|sed -e "/^[^*]/d" -e "s/* \(.*\)/\ \1/"', function (e, next, stdout) {
 		properties.branch.name = stdout.trim().slice(2);
 		properties.branch.release = properties.branch.name.indexOf('release') !== -1;
 		properties.branch.hotfix = properties.branch.name.indexOf('hotfix') !== -1;
 		next();
 	})
-	.send('git branch|grep -c release', function (e, stdout, stderr, next) {
+	.send('git branch|grep -c release', function (e, next, stdout) {
 		properties.branch.exists.release = stdout.trim() === '1';
 		next();
 	})
-	.send('git branch|grep -c hotfix', function (e, stdout, stderr, next) {
+	.send('git branch|grep -c hotfix', function (e, next, stdout) {
 		properties.branch.exists.hotfix = stdout.trim() === '1';
 		main();
 	});
