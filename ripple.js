@@ -57,28 +57,21 @@ var exec = {
 	},
 	send: function (args, next) {
 		if (cli.debug) console.error('debug: send called.');
+		if (typeof next !== 'function') throw new Error('exec: You cannot begin() or send() without a callback.');
 		this.queue.unshift([args, next]);
 		return this;
 	},
 	go: function (queueObj) {
 		if (queueObj) {
 			if (cli.debug) console.error('debug: go called. queue depth %s. "%s"', exec.queue.length, queueObj[0]);
-			systemExec(queueObj[0], function (e, stdout, stderr) {
-				// Proceed even on error
-				try {
-					queueObj[1](e, stdout, stderr, exec.next);
-				} catch (e) {
-					// If the client isn't paying attention, just blindly proceed.
-					exec.next();
-				}
-			});
+			systemExec(queueObj[0], function (e, stdout, stderr) { queueObj[1](e, stdout, stderr, exec.next); });
 		} else {
 			if (cli.debug) console.error('debug warning: go called with no job. Look for an errant "next();".');
 		}
 	},
 	next: function () {
 		if (cli.debug) console.error('debug: next called. queue depth %s.', exec.queue.length);
-		if (exec.fresh) throw new Error('next() called externally!');
+		if (exec.fresh) throw new Error('exec: Do not call next() programmatically. Execution will begin automatically on nextTick.');
 		exec.go(exec.queue.pop());
 	}
 };
