@@ -374,7 +374,6 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							console.log('  finalizing hotfix branch');
 							console.log('  merging %s into master', properties.branch.hotfix);
 							next();
 						}
@@ -408,7 +407,7 @@ var main = function () {
 											console.log(stdout);
 										} else {
 											if (cli.verbose) console.log(stdout);
-											console.log('warning: Check the results of this merge carfully! Conflicts were auto-rsolved using hotfix.');
+											console.log('warning: Check the results of this merge carfully! Conflicts may be auto-resolved using hotfix.');
 											console.log('  removing %s branch', properties.branch.hotfix);
 											next();
 										}
@@ -419,8 +418,8 @@ var main = function () {
 										} else {
 											if (cli.verbose) console.log(stdout);
 											cli.bump = 'revision';
-											console.log('  auto-incrementing release branch to %s', methods.document.object.version);
-											console.log('  If you would prefer a different release version, run "ripple bump <part>".');
+											console.log('  auto-incrementing release branch');
+											console.log('note: if you would prefer a different release version, run "ripple bump <major/minor/revision>".');
 											methods.document.increment();
 											methods.document.write(function () {
 												console.log('ok.');
