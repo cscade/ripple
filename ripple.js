@@ -339,6 +339,7 @@ var main = function () {
 						console.log(stdout);
 					} else {
 						if (cli.verbose) console.log(stdout);
+						console.log('  removing %s branch', properties.branch.execution);
 						next();
 					}
 				})
