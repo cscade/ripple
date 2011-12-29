@@ -421,94 +421,102 @@ var main = function () {
 		} else if (cli.finish === 'hotfix') {
 			// Hotfix integration
 			// checkout master, merge in hotfix, checkout develop, merge in hotfix, delete hotfix
-			methods.document.read(function (doc) {
-				exec('git checkout master', function (e, stdout) {
-					if (e) {
-						console.log(e.message);
-					} else {
-						console.log('*** Finalizing hotfix branch...');
-						console.log('  merging %s into master', properties.branch.name);
-						exec('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.name, function (e, stdout, stderr) {
-							if (e) {
-								console.log('error: Merge failed.');
-								console.log(stdout);
-							} else {
-								console.log(stdout);
-								console.log('  tagging version %s on master', methods.document.object.version);
-								exec('git tag -a ' + methods.document.object.version + ' -m "version ' + methods.document.object.version + '"', function (e) {
-									if (e) {
-										console.log(e.message);
-									} else {
-										if (properties.branch.exists.release) {
-											// Merge into release
-											exec('git branch | grep "release"', function (e, stdout) {
-												var releaseBranch = stdout.trim();
-												
-												exec('git checkout ' + releaseBranch, function (e) {
-													if (e) {
-														console.log(e.message);
-													} else {
-														console.log('  merging %s into ' + releaseBranch, properties.branch.name);
-														exec('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.name, function (e, stdout, stderr) {
-															if (e) {
-																console.log('error: Merge failed.');
-																console.log(stdout);
-															} else {
-																console.log(stdout);
-																console.log('warning: Check the results of this merge carfully! Conflicts were auto-rsolved using hotfix.');
-																console.log('  removing hotfix branch');
-																exec('git branch -d ' + properties.branch.name, function (e, stdout) {
-																	if (e) {
-																		console.log(e.message);
-																	} else {
-																		console.log(stdout);
-																		methods.document.version.to[2]++;
-																		methods.document.object.version = methods.document.version.to.join('.');
-																		console.log('  auto-incrementing release branch to %s', methods.document.object.version);
-																		console.log('  If you would prefer a different release version, run release.js with just a bump flag.');
-																		methods.document.write(function () {
-																			console.log('ok.');
-																		}, 'release');
-																	}
-																});
-															}
-														});
-													}
-												});
-											});
+			methods.document.read('HEAD', function () {
+				var releaseBranch;
+				
+				exec
+					.begin('git checkout master', function (e, next) {
+						if (e) {
+							console.log(e.message);
+						} else {
+							console.log('*** Finalizing hotfix branch...');
+							console.log('  merging %s into master', properties.branch.name);
+							next();
+						}
+					})
+					.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.name, function (e, next, stdout) {
+						if (e) {
+							console.log(stdout);
+						} else {
+							if (cli.verbose) console.log(stdout);
+							console.log('  tagging version %s on master', methods.document.object.version);
+							next();
+						}
+					})
+					.send('git tag -a ' + methods.document.object.version + ' -m "version ' + methods.document.object.version + '"', function (e) {
+						if (e) {
+							console.log(e.message);
+						} else {
+							if (properties.branch.exists.release) {
+								// Merge into release
+								exec
+									.begin('git branch | grep "release"', function (e, next, stdout) {
+										releaseBranch = stdout.trim();
+										next();
+									})
+									.send('git checkout ' + releaseBranch, function (e, next) {
+										if (e) {
+											console.log(e.message);
 										} else {
-											// Merge into develop
-											exec('git checkout develop', function (e) {
-												if (e) {
-													console.log(e.message);
-												} else {
-													console.log('  merging %s into develop', properties.branch.name);
-													exec('git merge --no-ff ' + properties.branch.name, function (e, stdout, stderr) {
-														if (e) {
-															console.log('error: Merge failed.');
-															console.log(stdout);
-														} else {
-															console.log(stdout);
-															console.log('  removing hotfix branch');
-															exec('git branch -d ' + properties.branch.name, function (e, stdout) {
-																if (e) {
-																	console.log(e.message);
-																} else {
-																	console.log(stdout);
-																	console.log('ok.');
-																}
-															});
-														}
-													});
-												}
-											});
+											console.log('  merging %s into ' + releaseBranch, properties.branch.name);
+											next();
 										}
-									}
-								});
+									})
+									.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.name, function (e, next, stdout) {
+										if (e) {
+											console.log(stdout);
+										} else {
+											if (cli.verbose) console.log(stdout);
+											console.log('warning: Check the results of this merge carfully! Conflicts were auto-rsolved using hotfix.');
+											console.log('  removing hotfix branch');
+											next();
+										}
+									})
+									.send('git branch -d ' + properties.branch.name, function (e, next, stdout) {
+										if (e) {
+											console.log(e.message);
+										} else {
+											if (cli.verbose) console.log(stdout);
+											cli.bump = 'revision';
+											methods.document.increment();
+											console.log('  auto-incrementing release branch to %s', methods.document.object.version);
+											console.log('  If you would prefer a different release version, run "ripple bump <part>".');
+											methods.document.write(function () {
+												console.log('ok.');
+											}, 'release');
+										}
+									});
+							} else {
+								// Merge into develop
+								exec
+									.begin('git checkout develop', function (e, next) {
+										if (e) {
+											console.log(e.message);
+										} else {
+											console.log('  merging %s into develop', properties.branch.name);
+											next();
+										}
+									})
+									.send('git merge --no-ff ' + properties.branch.name, function (e, next, stdout) {
+										if (e) {
+											console.log(stdout);
+										} else {
+											if (cli.verbose) console.log(stdout);
+											console.log('  removing hotfix branch');
+											next();
+										}
+									})
+									.send('git branch -d ' + properties.branch.name, function (e, next, stdout) {
+										if (e) {
+											console.log(e.message);
+										} else {
+											if (cli.verbose) console.log(stdout);
+											console.log('ok.');
+										}
+									});
 							}
-						});
-					}
-				});
+						}
+					});
 			});
 		}
 	} else if (cli.bump === 'major' || cli.bump === 'minor' || cli.bump === 'revision') {
