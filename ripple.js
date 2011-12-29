@@ -1,4 +1,4 @@
-#!/usr/local/bin/node
+#!/usr/bin/env node
 /*!
  * ripple.js
  * Ripple
@@ -70,16 +70,13 @@ var exec = {
 };
 
 cli
-	.version('0.0.1')
-	.option('-R, --create-release', 'Create a new release branch (from develop)')
-	.option('-H, --create-hotfix', 'Create a new hotfix branch (from master)')
-	.option('-F, --finalize', 'Integrate current release or hotfix branch')
-	.option('-p, --package [location]', 'Relative path of package.json file to modify [./package.json]', './package.json')
-	.option('-M, --major', 'Bump major version')
-	.option('-m, --minor', 'Bump minor version')
-	.option('-r, --revision', 'Bump revision')
-	.option('-v, --current', 'Output current release version')
-	.option('-c, --commit', 'Commit file changes automatically');
+	.option('current', 'Output current release version')
+	.option('-r, create-release', 'Create a new release branch (from develop)')
+	.option('-h, create-hotfix', 'Create a new hotfix branch (from master)')
+	.option('-f, finalize', 'Integrate current release or hotfix branch')
+	.option('bump [part]', 'Bump version number [major | minor | revision]', 'revision')
+	.option('-p <location>', 'Relative path of package.json file to modify [./package.json]', './package.json')
+	.option('-c', 'Commit file changes automatically');
 
 cli.on('--help', function(){
 	console.log('  Examples:');
@@ -226,14 +223,14 @@ methods.document.write = function (doc, next, alias) {
  * @param {Object} doc
  */
 methods.document.increment = function (doc) {
-	if (cli.revision) {
+	if (cli.bump === 'revision') {
 		methods.document.version.to[2]++;
 	}
-	if (cli.minor) {
+	if (cli.bump === 'minor') {
 		methods.document.version.to[1]++;
 		methods.document.version.to[2] = 0;
 	}
-	if (cli.major) {
+	if (cli.bump === 'major') {
 		methods.document.version.to[0]++;
 		methods.document.version.to[1] = 0;
 		methods.document.version.to[2] = 0;
@@ -263,7 +260,7 @@ var main = function () {
 			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
-		if (!cli.major && !cli.minor && (!cli.revision && cli.createRelease)) {
+		if (cli.bump !== 'major' && cli.bump !== 'minor' && (cli.bump !== 'revision' && cli.createRelease)) {
 			console.log('error: Can\'t create a new release without bumping version. %s', defaultMessage);
 			process.exit(1);
 		}
@@ -482,7 +479,7 @@ var main = function () {
 				});
 			});
 		}
-	} else if (cli.major || cli.minor || cli.revision) {
+	} else if (cli.bump === 'major' || cli.bump === 'minor' || cli.bump === 'revision') {
 		// Just update revision
 		if (!properties.branch.release) {
 			console.log('error: You can only manually bump versions on a release branch.');
