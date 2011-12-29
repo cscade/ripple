@@ -365,7 +365,7 @@ var main = function () {
 			// Release integration
 			// checkout master, merge in release, checkout develop, merge in release, delete release
 			methods.document.read('HEAD', function () {
-				excc
+				exec
 					.begin('git checkout master', function (e, next) {
 						if (e) {
 							console.log(e.message);
