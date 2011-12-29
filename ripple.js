@@ -509,7 +509,7 @@ var main = function () {
 			console.log('error: '.red.bold + 'You can only manually bump versions on a release branch.');
 			process.exit(1);
 		}
-		methods.document.read('HEAD', function () {
+		methods.document.read(properties.branch.release, function () {
 			methods.document.increment();
 			methods.document.write(function () {
 				console.log('ok.'.green.bold);
