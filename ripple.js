@@ -269,7 +269,7 @@ var main = function () {
 				console.log('error: '.red + 'You already have a release branch!');
 				process.exit(1);
 			}
-			methods.document.read('master', function () {
+			methods.document.read('develop', function () {
 				console.log('  creating new release branch from "develop"'.blue);
 				methods.document.increment();
 				if (properties.branch.exists.hotfix) {
