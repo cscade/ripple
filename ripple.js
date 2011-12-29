@@ -507,11 +507,18 @@ var main = function () {
 	.send('git branch|grep release', function (e, next, stdout) {
 		properties.branch.exists.release = stdout.trim().length > 0;
 		properties.branch.release = stdout.trim();
+		if (properties.branch.release.indexOf('*') !== -1) {
+			// Trim possible leading '* '
+			properties.branch.release = properties.branch.release.slice(2);
+		}
 		next();
 	})
 	.send('git branch|grep hotfix', function (e, next, stdout) {
 		properties.branch.exists.hotfix = stdout.trim().length > 0;
 		properties.branch.hotfix = stdout.trim();
-		console.log(properties);
+		if (properties.branch.hotfix.indexOf('*') !== -1) {
+			// Trim possible leading '* '
+			properties.branch.hotfix = properties.branch.hotfix.slice(2);
+		}
 		main();
 	});
