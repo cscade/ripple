@@ -153,7 +153,7 @@ methods.document.write = function (proceed, alias) {
 	if (cli.debug) console.error('debug: document.write called.');
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
 		if (!cli.noCommit) {
-			console.log('  Commiting changes');
+			console.log('  commiting changes');
 			(new Exec())
 				.send('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, next, stdout) {
 					if (e) {
@@ -222,7 +222,7 @@ methods.document.increment = function () {
 		methods.document.version.to[1] = 0;
 		methods.document.version.to[2] = 0;
 	}
-	console.log('  Updating version: %s -> %s', methods.document.version.from, methods.document.version.to.join('.'));
+	console.log('  updating version: %s -> %s', methods.document.version.from, methods.document.version.to.join('.'));
 	methods.document.object.version = methods.document.version.to.join('.');
 };
 
@@ -262,8 +262,8 @@ var main = function () {
 				process.exit(1);
 			}
 			methods.document.read('master', function () {
-				methods.document.increment();
 				console.log('  creating new release branch from "develop"');
+				methods.document.increment();
 				if (properties.branch.exists.hotfix) {
 					console.log('warning: A hotfix branch exists. You must finish the hotfix before finalizing the release.');
 				}
@@ -286,8 +286,8 @@ var main = function () {
 			methods.document.read('master', function (doc) {
 				// *** hotfixes imply a revision bump only. Ignore version bump flags
 				cli.bump = 'revision';
-				methods.document.increment();
 				console.log('  creating new hotfix branch from "master"');
+				methods.document.increment();
 				if (properties.branch.exists.release) {
 					console.log('warning: A release branch exists. You must finish the hotfix before finalizing the release.');
 				}
@@ -428,9 +428,9 @@ var main = function () {
 										} else {
 											if (cli.verbose) console.log(stdout);
 											cli.bump = 'revision';
-											methods.document.increment();
 											console.log('  auto-incrementing release branch to %s', methods.document.object.version);
 											console.log('  If you would prefer a different release version, run "ripple bump <part>".');
+											methods.document.increment();
 											methods.document.write(function () {
 												console.log('ok.');
 											}, 'release');
