@@ -10,7 +10,7 @@
 var cli = require('commander'),
 	fs = require('fs'),
 	path = require('path'),
-	systemExec = require('child_process').exec;
+	Exec = require('./lib/exec')(cli);
 
 var methods = {
 	file: {},
@@ -36,54 +36,6 @@ var properties = {
 
 var defaultMessage = 'Use --help for command line options.',
 	dirty;
-
-/**
- * exec library
- * 
- * Automatically queues calls to exec, and guarantees execution order.
- */
-var exec = {
-	/**
-	 * begin
-	 * 
-	 * Start a new exec queue.
-	 * callback singature - next(e, next, stdout, stderr)
-	 * 
-	 * @param {String} args
-	 * @param {Function} next
-	 */
-	begin: function (args, next) {
-		if (cli.debug) console.error('debug: begin called. new exec queue.');
-		this.queue = [];
-		this.send(args, next);
-		this.fresh = true;
-		process.nextTick(function () {
-			if (cli.debug) console.error('debug: next tick. calling next.');
-			exec.fresh = false;
-			exec.next();
-		});
-		return this;
-	},
-	send: function (args, next) {
-		if (cli.debug) console.error('debug: send called.');
-		if (typeof next !== 'function') throw new Error('exec: You cannot begin() or send() without a callback.');
-		this.queue.unshift([args, next]);
-		return this;
-	},
-	go: function (queueObj) {
-		if (queueObj) {
-			if (cli.debug) console.error('debug: go called. queue depth %s. "%s"', exec.queue.length, queueObj[0]);
-			systemExec(queueObj[0], function (e, stdout, stderr) { queueObj[1](e, exec.next, stdout, stderr); });
-		} else {
-			if (cli.debug) console.error('debug warning: go called with no job. Look for an errant "next();".');
-		}
-	},
-	next: function () {
-		if (cli.debug) console.error('debug: next called. queue depth %s.', exec.queue.length);
-		if (exec.fresh) throw new Error('exec: Do not call next() programmatically. Execution will begin automatically on nextTick.');
-		exec.go(exec.queue.pop());
-	}
-};
 
 cli
 	.option('status', 'Output current status')
@@ -173,7 +125,7 @@ methods.document.read = function (branch, next) {
 	if (cli.debug) console.error('debug: document.read called.');
 	if (typeof branch !== 'string') throw new Error('Document: You must specify a branch to read package.json from.');
 	if (cli.debug) console.error('debug: checking out %s.', branch);
-	exec.begin('git checkout ' + branch, function (e) {
+	(new Exec()).send('git checkout ' + branch, function (e) {
 		if (e) {
 			console.log(e.message);
 		} else {
@@ -200,8 +152,8 @@ methods.document.write = function (proceed, alias) {
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
 		if (!cli.noCommit) {
 			console.log('*** Commiting changes...');
-			exec
-				.begin('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, next, stdout) {
+			(new Exec())
+				.send('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, next, stdout) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -226,8 +178,8 @@ methods.document.write = function (proceed, alias) {
 					}
 				});
 		} else {
-			exec
-				.begin('git status', function (e, next, stdout) {
+			(new Exec())
+				.send('git status', function (e, next, stdout) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -312,7 +264,7 @@ var main = function () {
 				if (properties.branch.exists.hotfix) {
 					console.log('warning: A hotfix branch exists. You must finish the hotfix before finalizing the release.');
 				}
-				exec.begin('git checkout -b release-' + methods.document.object.version + ' develop', function (e) {
+				(new Exec()).send('git checkout -b release-' + methods.document.object.version + ' develop', function (e) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -336,7 +288,7 @@ var main = function () {
 				if (properties.branch.exists.release) {
 					console.log('warning: A release branch exists. You must finish the hotfix before finalizing the release.');
 				}
-				exec.begin('git checkout -b hotfix-' + methods.document.object.version + ' master', function (e) {
+				(new Exec()).send('git checkout -b hotfix-' + methods.document.object.version + ' master', function (e) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -365,8 +317,8 @@ var main = function () {
 			// Release integration
 			// checkout master, merge in release, checkout develop, merge in release, delete release
 			methods.document.read('HEAD', function () {
-				exec
-					.begin('git checkout master', function (e, next) {
+				(new Exec())
+					.send('git checkout master', function (e, next) {
 						if (e) {
 							console.log(e.message);
 						} else {
@@ -424,8 +376,8 @@ var main = function () {
 			methods.document.read('HEAD', function () {
 				var releaseBranch;
 				
-				exec
-					.begin('git checkout master', function (e, next) {
+				(new Exec())
+					.send('git checkout master', function (e, next) {
 						if (e) {
 							console.log(e.message);
 						} else {
@@ -449,8 +401,8 @@ var main = function () {
 						} else {
 							if (properties.branch.exists.release) {
 								// Merge into release
-								exec
-									.begin('git branch | grep "release"', function (e, next, stdout) {
+								(new Exec())
+									.send('git branch | grep "release"', function (e, next, stdout) {
 										releaseBranch = stdout.trim();
 										next();
 									})
@@ -488,8 +440,8 @@ var main = function () {
 									});
 							} else {
 								// Merge into develop
-								exec
-									.begin('git checkout develop', function (e, next) {
+								(new Exec())
+									.send('git checkout develop', function (e, next) {
 										if (e) {
 											console.log(e.message);
 										} else {
@@ -539,8 +491,8 @@ var main = function () {
 /**
  * Preload all state info.
  */
-exec
-	.begin('git status|grep -c "working directory clean"', function (e, next, stdout) {
+(new Exec())
+	.send('git status|grep -c "working directory clean"', function (e, next, stdout) {
 		dirty = stdout.trim() === '0';
 		next();
 	})
