@@ -317,19 +317,19 @@ var main = function () {
 		}
 		if (cli.finish === 'release') {
 			// Release integration
-			// checkout master, merge in release, checkout develop, merge in release, delete release
-			methods.document.read('HEAD', function () {
+			// merge release into master, merge release into develop, delete release
+			methods.document.read(properties.branch.release, function () {
 				(new Exec())
 					.send('git checkout master', function (e, next) {
 						if (e) {
 							console.log(e.message);
 						} else {
 							console.log('*** Finalizing release branch...');
-							console.log('  merging %s into master', properties.branch.execution);
+							console.log('  merging %s into master', properties.branch.release);
 							next();
 						}
 					})
-					.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.execution, function (e, next, stdout) {
+					.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.release, function (e, next, stdout) {
 						if (e) {
 							console.log(stdout);
 						} else {
@@ -349,21 +349,21 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							console.log('  merging %s into develop', properties.branch.execution);
+							console.log('  merging %s into develop', properties.branch.release);
 							next();
 						}
 					})
-					.send('git merge --no-ff ' + properties.branch.execution, function (e, next, stdout) {
+					.send('git merge --no-ff ' + properties.branch.release, function (e, next, stdout) {
 						if (e) {
 							console.log('error: Merge failed.');
 							console.log(stdout);
 						} else {
 							if (cli.verbose) console.log(stdout);
-							console.log('  removing release branch');
+							console.log('  removing %s branch', properties.branch.release);
 							next();
 						}
 					})
-					.send('git branch -d ' + properties.branch.execution, function (e, next, stdout) {
+					.send('git branch -d ' + properties.branch.release, function (e, next, stdout) {
 						if (e) {
 							console.log(e.message);
 						} else {
@@ -375,20 +375,18 @@ var main = function () {
 		} else if (cli.finish === 'hotfix') {
 			// Hotfix integration
 			// checkout master, merge in hotfix, checkout develop, merge in hotfix, delete hotfix
-			methods.document.read('HEAD', function () {
-				var releaseBranch;
-				
+			methods.document.read(properties.branch.hotfix, function () {
 				(new Exec())
 					.send('git checkout master', function (e, next) {
 						if (e) {
 							console.log(e.message);
 						} else {
 							console.log('*** Finalizing hotfix branch...');
-							console.log('  merging %s into master', properties.branch.execution);
+							console.log('  merging %s into master', properties.branch.hotfix);
 							next();
 						}
 					})
-					.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.execution, function (e, next, stdout) {
+					.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.hotfix, function (e, next, stdout) {
 						if (e) {
 							console.log(stdout);
 						} else {
@@ -404,29 +402,25 @@ var main = function () {
 							if (properties.branch.exists.release) {
 								// Merge into release
 								(new Exec())
-									.send('git branch | grep "release"', function (e, next, stdout) {
-										releaseBranch = stdout.trim();
-										next();
-									})
-									.send('git checkout ' + releaseBranch, function (e, next) {
+									.send('git checkout ' + properties.branch.release, function (e, next) {
 										if (e) {
 											console.log(e.message);
 										} else {
-											console.log('  merging %s into ' + releaseBranch, properties.branch.execution);
+											console.log('  merging %s into ' + properties.branch.release, properties.branch.hotfix);
 											next();
 										}
 									})
-									.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.execution, function (e, next, stdout) {
+									.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.hotfix, function (e, next, stdout) {
 										if (e) {
 											console.log(stdout);
 										} else {
 											if (cli.verbose) console.log(stdout);
 											console.log('warning: Check the results of this merge carfully! Conflicts were auto-rsolved using hotfix.');
-											console.log('  removing hotfix branch');
+											console.log('  removing %s branch', properties.branch.hotfix);
 											next();
 										}
 									})
-									.send('git branch -d ' + properties.branch.execution, function (e, next, stdout) {
+									.send('git branch -d ' + properties.branch.hotfix, function (e, next, stdout) {
 										if (e) {
 											console.log(e.message);
 										} else {
@@ -447,20 +441,20 @@ var main = function () {
 										if (e) {
 											console.log(e.message);
 										} else {
-											console.log('  merging %s into develop', properties.branch.execution);
+											console.log('  merging %s into develop', properties.branch.hotfix);
 											next();
 										}
 									})
-									.send('git merge --no-ff ' + properties.branch.execution, function (e, next, stdout) {
+									.send('git merge --no-ff ' + properties.branch.hotfix, function (e, next, stdout) {
 										if (e) {
 											console.log(stdout);
 										} else {
 											if (cli.verbose) console.log(stdout);
-											console.log('  removing hotfix branch');
+											console.log('  removing %s branch', properties.branch.hotfix);
 											next();
 										}
 									})
-									.send('git branch -d ' + properties.branch.execution, function (e, next, stdout) {
+									.send('git branch -d ' + properties.branch.hotfix, function (e, next, stdout) {
 										if (e) {
 											console.log(e.message);
 										} else {
