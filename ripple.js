@@ -41,7 +41,8 @@ var defaultMessage = 'Use --help for command line options.',
 
 cli
 	.option('status', 'Output current status')
-	.option('start <kind>', 'Create a new release or hotfix branch [release | hotfix]')
+	.option('start <kind>', 'Create a new release or hotfix branch [feature | release | hotfix]')
+	.option('called <name>', 'Used in conjunction with "start feature" to specify a branch name')
 	.option('bump <part>', 'Bump version number while on a release branch [major | minor | revision]')
 	.option('finish <kind>', 'Finish and merge the current release or hotfix branch. Always commits! [release | hotfix]')
 	.option('-p, package <location>', 'Relative path of package.json file to modify [./package.json]', './package.json')
@@ -239,7 +240,7 @@ var main = function () {
 		});
 	} else if (cli.start) {
 		console.log('Starting %s branch', cli.start);
-		if (dirty) {
+		if (dirty && cli.start !== 'feature') {
 			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
@@ -247,8 +248,22 @@ var main = function () {
 			console.log('error: Can\'t create a new release without bumping version. %s', defaultMessage);
 			process.exit(1);
 		}
-		if (cli.start === 'release') {
-			// Create release
+		if (cli.start === 'feature') {
+			if (!cli.called) {
+				console.log('error: When starting a new feature, use the called flag. i.e. "ripple start feature called my_feature".');
+				process.exit(1);
+			}
+			methods.document.read('master', function () {
+				console.log('  creating new %s branch from "%s"', cli.called, properties.branch.execution);
+				(new Exec()).send('git checkout -b ' + cli.called + ' ' + properties.branch.execution, function (e) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						console.log('ok.');
+					}
+				});
+			});
+		} else if (cli.start === 'release') {
 			if (properties.branch.exists.release) {
 				console.log('error: You already have a release branch!');
 				process.exit(1);
@@ -269,8 +284,7 @@ var main = function () {
 					}
 				});
 			});
-		} else {
-			// Create hotfix
+		} else if (cli.start === 'hotfix') {
 			if (properties.branch.exists.hotfix) {
 				console.log('error: You already have a hotfix branch!');
 				process.exit(1);
@@ -295,21 +309,49 @@ var main = function () {
 			});
 		}
 	} else if (cli.finish) {
-		// Finish
 		console.log('Finishing %s branch', cli.finish);
 		if (dirty) {
 			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
-		if (!properties.branch.isRelease && !properties.branch.isHotfix) {
-			console.log('error: You can only finish a release or hotfix branch!');
-			process.exit(1);
-		}
-		if (properties.branch.exists.release && properties.branch.exists.hotfix && cli.finish !== 'hotfix') {
+		if (properties.branch.exists.release && properties.branch.exists.hotfix && cli.finish === 'release') {
 			console.log('error: You must finish your hotfix before finishing your release.');
 			process.exit(1);
 		}
-		if (cli.finish === 'release') {
+		if (cli.finish === 'feature' && (properties.branch.isRelease || properties.branch.isHotfix || properties.branch.execution === 'master' || properties.branch.execution === 'develop')) {
+			console.log('error: Finishing a feature requires that you have it\'s branch already checked out.');
+			process.exit(1);
+		}
+		if (cli.finish === 'feature') {
+			// Feature integration
+			// merge feature into develop, delete feature
+			(new Exec())
+				.send('git checkout develop', function (e, next) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						console.log('  merging %s into develop', properties.branch.execution);
+						next();
+					}
+				})
+				.send('git merge --no-ff ' + properties.branch.execution, function (e, next, stdout) {
+					if (e) {
+						console.log(stdout);
+					} else {
+						if (cli.verbose) console.log(stdout);
+						console.log('  removing %s branch', properties.branch.execution);
+						next();
+					}
+				})
+				.send('git branch -d ' + properties.branch.execution, function (e, next, stdout) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						if (cli.verbose) console.log(stdout);
+						console.log('ok.');
+					}
+				});
+		} else if (cli.finish === 'release') {
 			// Release integration
 			// merge release into master, merge release into develop, delete release
 			methods.document.read(properties.branch.release, function () {
