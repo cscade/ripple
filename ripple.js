@@ -251,15 +251,17 @@ var main = function () {
 			console.log('  Working on: %s %s', doc.name, doc.version);
 			console.log('  With a package located at: %s', path.resolve(cli.package));
 			console.log('  Working tree is %s, current branch is [%s].', dirty ? 'dirty' : 'clean', properties.branch.name);
-			console.log(properties.branch.exists.release ? '  You cannot create a release branch, one already exists.' : '  You may create a release branch with "ripple start release bump <major/minor/revision>"');
-			console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "ripple start hotfix"');
+			if (!dirty) {
+				console.log(properties.branch.exists.release ? '  You cannot create a release branch, one already exists.' : '  You may create a release branch with "ripple start release bump <major/minor/revision>"');
+				console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "ripple start hotfix"');
+			}
 			console.log('ok.');
 		});
+	} else if (cli.start) {
 		if (dirty) {
 			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
-	} else if (cli.start) {
 		if (cli.bump !== 'major' && cli.bump !== 'minor' && (cli.bump !== 'revision' && cli.start === 'release')) {
 			console.log('error: Can\'t create a new release without bumping version. %s', defaultMessage);
 			process.exit(1);
@@ -278,14 +280,16 @@ var main = function () {
 						methods.document.read(function (doc) {
 							methods.document.increment(doc);
 							console.log('*** Creating new release branch...');
-							if (properties.branch.exists.hotfix) console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
+							if (properties.branch.exists.hotfix) {
+								console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
+							}
 							next();
 						});
 					}
 				})
 				.send('git checkout -b release-' + doc.version + ' develop', function (e, stdout, stderr, next) {
 					if (e) {
-						console.log(e);
+						console.log(e.message);
 					} else {
 						methods.document.write(doc, function () {
 							console.log('ok.');
