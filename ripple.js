@@ -82,7 +82,7 @@ cli
 	.option('bump <part>', 'Bump version number while on a release branch [major | minor | revision]')
 	.option('-f, finalize', 'Integrate current release or hotfix branch')
 	.option('-p, package <location>', 'Relative path of package.json file to modify [./package.json]', './package.json')
-	.option('-c, commit', 'Commit file changes automatically')
+	.option('no-commit', 'Do not commit version changes automatically')
 	.option('-d, debug', 'debug output');
 
 cli.on('--help', function(){
@@ -188,7 +188,7 @@ methods.document.read = function (branch, next) {
 methods.document.write = function (doc, proceed, alias) {
 	if (cli.debug) console.error('debug: document.write called.');
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
-		if (cli.commit) {
+		if (!cli.noCommit) {
 			console.log('*** Commiting changes...');
 			exec
 				.begin('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, stdout, stderr, next) {
