@@ -153,7 +153,7 @@ methods.document.write = function (proceed, alias) {
 	if (cli.debug) console.error('debug: document.write called.');
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
 		if (!cli.noCommit) {
-			console.log('*** Commiting changes...');
+			console.log('  Commiting changes');
 			(new Exec())
 				.send('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, next, stdout) {
 					if (e) {
@@ -222,7 +222,7 @@ methods.document.increment = function () {
 		methods.document.version.to[1] = 0;
 		methods.document.version.to[2] = 0;
 	}
-	console.log('*** Updating version: %s -> %s', methods.document.version.from, methods.document.version.to.join('.'));
+	console.log('  Updating version: %s -> %s', methods.document.version.from, methods.document.version.to.join('.'));
 	methods.document.object.version = methods.document.version.to.join('.');
 };
 
@@ -246,6 +246,7 @@ var main = function () {
 			console.log('ok.');
 		});
 	} else if (cli.start) {
+		console.log('Starting %s branch', cli.start);
 		if (dirty) {
 			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
@@ -262,7 +263,7 @@ var main = function () {
 			}
 			methods.document.read('master', function () {
 				methods.document.increment();
-				console.log('*** Creating new release branch from "develop"...');
+				console.log('  creating new release branch from "develop"');
 				if (properties.branch.exists.hotfix) {
 					console.log('warning: A hotfix branch exists. You must finish the hotfix before finalizing the release.');
 				}
@@ -286,7 +287,7 @@ var main = function () {
 				// *** hotfixes imply a revision bump only. Ignore version bump flags
 				cli.bump = 'revision';
 				methods.document.increment();
-				console.log('*** Creating new hotfix branch from "master"...');
+				console.log('  creating new hotfix branch from "master"');
 				if (properties.branch.exists.release) {
 					console.log('warning: A release branch exists. You must finish the hotfix before finalizing the release.');
 				}
@@ -303,6 +304,7 @@ var main = function () {
 		}
 	} else if (cli.finish) {
 		// Finish
+		console.log('Finishing %s branch', cli.finish);
 		if (dirty) {
 			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
@@ -324,7 +326,7 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							console.log('*** Finalizing release branch...');
+							console.log('  finalizing release branch');
 							console.log('  merging %s into master', properties.branch.release);
 							next();
 						}
@@ -381,7 +383,7 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							console.log('*** Finalizing hotfix branch...');
+							console.log('  finalizing hotfix branch');
 							console.log('  merging %s into master', properties.branch.hotfix);
 							next();
 						}
@@ -469,6 +471,7 @@ var main = function () {
 		}
 	} else if (cli.bump === 'major' || cli.bump === 'minor' || cli.bump === 'revision') {
 		// Just update revision
+		console.log('Bumping version number');
 		if (!properties.branch.isRelease) {
 			console.log('error: You can only manually bump versions on a release branch.');
 			process.exit(1);
