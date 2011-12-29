@@ -10,7 +10,7 @@ Please check back as development occurs.
 
 ## Inspiration
 
-This utility was inspired by and does it's best to adhere to the principals described in [Vincent Driessen's excellent blog post](http://nvie.com/posts/a-successful-git-branching-model/).
+This utility was inspired by and does it's best to adhere to the principals described in Vincent Driessen's excellent blog post; [A successful Git branching model](http://nvie.com/posts/a-successful-git-branching-model/).
 
 ## License 
 
