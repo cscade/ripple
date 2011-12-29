@@ -212,6 +212,7 @@ methods.document.write = function (doc, proceed, alias) {
 						console.log(e.message);
 					} else {
 						console.log(stdout);
+						// Show diff
 						next();
 					}
 				})
@@ -318,28 +319,32 @@ var main = function () {
 				console.log('error: You already have a hotfix branch!');
 				process.exit(1);
 			}
-			exec('git checkout master', function (e, stdout, stderr) {
-				if (e) {
-					console.log(e.message);
-				} else {
-					methods.document.read(function (doc) {
-						// *** hotfixes imply a revision bump only. Ignore version bump flags
-						methods.document.version.to[2]++;
-						doc.version = methods.document.version.to.join('.');
-						console.log('*** Creating new hotfix branch...');
-						if (properties.branch.exists.release) console.log('warning: A release branch exists. You must finalize the hotfix before finalizing the release.');
-						exec('git checkout -b hotfix-' + doc.version + ' master', function (e, stdout, stderr) {
-							if (e) {
-								console.log(e.message);
-							} else {
-								methods.document.write(doc, function () {
-									console.log('ok.');
-								});
+			exec
+				.begin('git checkout master', function (e, stdout, stderr, next) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						methods.document.read(function (doc) {
+							// *** hotfixes imply a revision bump only. Ignore version bump flags
+							methods.document.version.to[2]++;
+							doc.version = methods.document.version.to.join('.');
+							console.log('*** Creating new hotfix branch...');
+							if (properties.branch.exists.release) {
+								console.log('warning: A release branch exists. You must finalize the hotfix before finalizing the release.');
 							}
+							next();
 						});
-					});
-				}
-			});
+					}
+				})
+				.send('git checkout -b hotfix-' + doc.version + ' master', function (e, stdout, stderr, next) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						methods.document.write(doc, function () {
+							console.log('ok.');
+						});
+					}
+				});
 		}
 	} else if (cli.finalize) {
 		// Finalize
