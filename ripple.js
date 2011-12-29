@@ -47,7 +47,9 @@ var exec = {
 		if (cli.debug) console.error('debug: begin called. new exec queue.');
 		this.queue = [];
 		this.send(args, next);
-		this.next();
+		process.nextTick(function () {
+			exec.next();
+		});
 		return this;
 	},
 	send: function (args, next) {
@@ -73,9 +75,7 @@ var exec = {
 	},
 	next: function () {
 		if (cli.debug) console.error('debug: next called. queue depth %s.', exec.queue.length);
-		process.nextTick(function () {
-			exec.go(exec.queue.pop());
-		});
+		exec.go(exec.queue.pop());
 	}
 };
 
