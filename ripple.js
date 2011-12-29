@@ -527,7 +527,7 @@ var main = function () {
  * Preload all state info.
  */
 exec
-	.begin('git status|grep -c "working directory clean"', function (e, next) {
+	.begin('git status|grep -c "working directory clean"', function (e, next, stdout) {
 		dirty = stdout.trim() === '0';
 		next();
 	})
