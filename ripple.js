@@ -10,7 +10,8 @@
 var cli = require('commander'),
 	fs = require('fs'),
 	path = require('path'),
-	Exec = require('./lib/exec')(cli);
+	Exec = require('./lib/exec')(cli),
+	colors = require('colors');
 
 var methods = {
 	file: {},
@@ -77,16 +78,16 @@ cli.commit = !cli.commit;
  * @param {Function} next
  */
 methods.file.read = function (uri, next) {
-	if (cli.debug) console.error('debug: file.read called.');
+	if (cli.debug) console.error('debug:'.grey.inverse + ' file.read called.');
 	fs.readFile(uri, 'utf8', function (e, data) {
 		if (e) {
-			console.error('error: %s could not be read. File does not exist.', uri);
+			console.error('error: '.red + '%s could not be read. File does not exist.', uri);
 			process.exit(1);
 		} else {
 			try {
 				data = JSON.parse(data);
 			} catch (e) {
-				console.error('error: %s could not be parsed. Make sure it is a valid json document.', uri);
+				console.error('error: '.red + '%s could not be parsed. Make sure it is a valid json document.', uri);
 				process.exit(1);
 			}
 			next(data);
@@ -104,10 +105,10 @@ methods.file.read = function (uri, next) {
  * @param {Function} next
  */
 methods.file.write = function (doc, uri, next) {
-	if (cli.debug) console.error('debug: file.write called.');
+	if (cli.debug) console.error('debug:'.grey.inverse + ' file.write called.');
 	fs.writeFile(uri, JSON.stringify(doc, null, 4), 'utf8', function (e) {
 		if (e) {
-			console.error('error: %s could not be written.');
+			console.error('error: '.red + '%s could not be written.');
 			process.exit(1);
 		} else {
 			try {
@@ -126,9 +127,9 @@ methods.file.write = function (doc, uri, next) {
  * @param {Function} next
  */
 methods.document.read = function (branch, next) {
-	if (cli.debug) console.error('debug: document.read called.');
+	if (cli.debug) console.error('debug:'.grey.inverse + ' document.read called.');
 	if (typeof branch !== 'string') throw new Error('Document: You must specify a branch to read package.json from.');
-	if (cli.debug) console.error('debug: checking out %s.', branch);
+	if (cli.debug) console.error('debug:'.grey.inverse + ' checking out %s.', branch);
 	(new Exec()).send('git checkout ' + branch, function (e) {
 		if (e) {
 			console.log(e.message);
@@ -152,7 +153,7 @@ methods.document.read = function (branch, next) {
  * @param {String} alias
  */
 methods.document.write = function (proceed, alias) {
-	if (cli.debug) console.error('debug: document.write called.');
+	if (cli.debug) console.error('debug:'.grey.inverse + ' document.write called.');
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
 		if (cli.commit) {
 			console.log('  commiting changes');
@@ -229,80 +230,80 @@ var main = function () {
 		// Output current status
 		methods.file.read(path.resolve(cli.package), function (doc) {
 			console.log('Status');
-			console.log('  Working on: %s %s', doc.name, doc.version);
-			console.log('  With a package located at: %s', path.resolve(cli.package));
-			console.log('  Working tree is %s, current branch is [%s].', dirty ? 'dirty' : 'clean', properties.branch.execution);
+			console.log('  Working on: %s %s', doc.name.blue, doc.version.blue);
+			console.log('  With a package located at: %s', path.resolve(cli.package).blue);
+			console.log('  Working tree is %s, current branch is [%s].', dirty ? 'dirty' : 'clean', properties.branch.execution.blue);
 			if (!dirty) {
 				console.log(properties.branch.exists.release ? '  You cannot create a release branch, one already exists.' : '  You may create a release branch with "ripple start release bump <major/minor/revision>"');
 				console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "ripple start hotfix"');
 			}
-			console.log('ok.');
+			console.log('ok.'.green);
 		});
 	} else if (cli.start) {
 		console.log('Starting %s branch', cli.start);
 		if (dirty && cli.start !== 'feature') {
-			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
+			console.log('error: '.red + 'Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
 		if (cli.bump !== 'major' && cli.bump !== 'minor' && (cli.bump !== 'revision' && cli.start === 'release')) {
-			console.log('error: Can\'t create a new release without bumping version. %s', defaultMessage);
+			console.log('error: '.red + 'Can\'t create a new release without bumping version. %s', defaultMessage);
 			process.exit(1);
 		}
 		if (cli.start === 'feature') {
 			if (!cli.called) {
-				console.log('error: When starting a new feature, use the called flag. i.e. "ripple start feature called my_feature".');
+				console.log('error: '.red + 'When starting a new feature, use the called flag. i.e. "ripple start feature called my_feature".');
 				process.exit(1);
 			}
 			methods.document.read('master', function () {
-				console.log('  creating new %s branch from "%s"', cli.called, properties.branch.execution);
+				console.log('  creating new %s branch from "%s"'.blue, cli.called, properties.branch.execution);
 				(new Exec()).send('git checkout -b ' + cli.called + ' ' + properties.branch.execution, function (e) {
 					if (e) {
 						console.log(e.message);
 					} else {
-						console.log('ok.');
+						console.log('ok.'.green);
 					}
 				});
 			});
 		} else if (cli.start === 'release') {
 			if (properties.branch.exists.release) {
-				console.log('error: You already have a release branch!');
+				console.log('error: '.red + 'You already have a release branch!');
 				process.exit(1);
 			}
 			methods.document.read('master', function () {
-				console.log('  creating new release branch from "develop"');
+				console.log('  creating new release branch from "develop"'.blue);
 				methods.document.increment();
 				if (properties.branch.exists.hotfix) {
-					console.log('warning: A hotfix branch exists. You must finish the hotfix before finalizing the release.');
+					console.log('warning'.red + ': A hotfix branch exists. You must finish the hotfix before finalizing the release.');
 				}
 				(new Exec()).send('git checkout -b release-' + methods.document.object.version + ' develop', function (e) {
 					if (e) {
 						console.log(e.message);
 					} else {
 						methods.document.write(function () {
-							console.log('ok.');
+							console.log('ok.'.green);
 						});
 					}
 				});
 			});
 		} else if (cli.start === 'hotfix') {
 			if (properties.branch.exists.hotfix) {
-				console.log('error: You already have a hotfix branch!');
+				console.log('error: '.red + 'You already have a hotfix branch!');
 				process.exit(1);
 			}
 			methods.document.read('master', function (doc) {
 				// *** hotfixes imply a revision bump only. Ignore version bump flags
 				cli.bump = 'revision';
-				console.log('  creating new hotfix branch from "master"');
+				console.log('  creating new hotfix branch from "master"'.blue);
 				methods.document.increment();
 				if (properties.branch.exists.release) {
-					console.log('warning: A release branch exists. You must finish the hotfix before finalizing the release.');
+					console.log('warning'.red + ': A release branch exists. You must finish the hotfix before finalizing the release.');
 				}
 				(new Exec()).send('git checkout -b hotfix-' + methods.document.object.version + ' master', function (e) {
 					if (e) {
 						console.log(e.message);
 					} else {
 						methods.document.write(function () {
-							console.log('ok.');
+							console.log('ok.'.green);
 						});
 					}
 				});
@@ -311,15 +312,15 @@ var main = function () {
 	} else if (cli.finish) {
 		console.log('Finishing %s branch', cli.finish);
 		if (dirty) {
-			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
+			console.log('error: '.red + 'Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
 		if (properties.branch.exists.release && properties.branch.exists.hotfix && cli.finish === 'release') {
-			console.log('error: You must finish your hotfix before finishing your release.');
+			console.log('error: '.red + 'You must finish your hotfix before finishing your release.');
 			process.exit(1);
 		}
 		if (cli.finish === 'feature' && (properties.branch.isRelease || properties.branch.isHotfix || properties.branch.execution === 'master' || properties.branch.execution === 'develop')) {
-			console.log('error: Finishing a feature requires that you have it\'s branch already checked out.');
+			console.log('error: '.red + 'Finishing a feature requires that you have it\'s branch already checked out.');
 			process.exit(1);
 		}
 		if (cli.finish === 'feature') {
@@ -330,7 +331,7 @@ var main = function () {
 					if (e) {
 						console.log(e.message);
 					} else {
-						console.log('  merging %s into develop', properties.branch.execution);
+						console.log('  merging %s into develop'.blue, properties.branch.execution);
 						next();
 					}
 				})
@@ -338,8 +339,8 @@ var main = function () {
 					if (e) {
 						console.log(stdout);
 					} else {
-						if (cli.verbose) console.log(stdout);
-						console.log('  removing %s branch', properties.branch.execution);
+						if (cli.verbose) console.log(stdout.grey);
+						console.log('  removing %s branch'.blue, properties.branch.execution);
 						next();
 					}
 				})
@@ -347,8 +348,8 @@ var main = function () {
 					if (e) {
 						console.log(e.message);
 					} else {
-						if (cli.verbose) console.log(stdout);
-						console.log('ok.');
+						if (cli.verbose) console.log(stdout.grey);
+						console.log('ok.'.green);
 					}
 				});
 		} else if (cli.finish === 'release') {
@@ -360,7 +361,7 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							console.log('  merging %s into master', properties.branch.release);
+							console.log('  merging %s into master'.blue, properties.branch.release);
 							next();
 						}
 					})
@@ -368,8 +369,8 @@ var main = function () {
 						if (e) {
 							console.log(stdout);
 						} else {
-							if (cli.verbose) console.log(stdout);
-							console.log('  tagging version %s on master', methods.document.object.version);
+							if (cli.verbose) console.log(stdout.grey);
+							console.log('  tagging version %s on master'.blue, methods.document.object.version);
 							next();
 						}
 					})
@@ -384,17 +385,17 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							console.log('  merging %s into develop', properties.branch.release);
+							console.log('  merging %s into develop'.blue, properties.branch.release);
 							next();
 						}
 					})
 					.send('git merge --no-ff ' + properties.branch.release, function (e, next, stdout) {
 						if (e) {
-							console.log('error: Merge failed.');
+							console.log('error: '.red + 'Merge failed.');
 							console.log(stdout);
 						} else {
-							if (cli.verbose) console.log(stdout);
-							console.log('  removing %s branch', properties.branch.release);
+							if (cli.verbose) console.log(stdout.grey);
+							console.log('  removing %s branch'.blue, properties.branch.release);
 							next();
 						}
 					})
@@ -402,8 +403,8 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							if (cli.verbose) console.log(stdout);
-							console.log('ok.');
+							if (cli.verbose) console.log(stdout.grey);
+							console.log('ok.'.green);
 						}
 					});
 			});
@@ -416,7 +417,7 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							console.log('  merging %s into master', properties.branch.hotfix);
+							console.log('  merging %s into master'.blue, properties.branch.hotfix);
 							next();
 						}
 					})
@@ -424,8 +425,8 @@ var main = function () {
 						if (e) {
 							console.log(stdout);
 						} else {
-							if (cli.verbose) console.log(stdout);
-							console.log('  tagging version %s on master', methods.document.object.version);
+							if (cli.verbose) console.log(stdout.grey);
+							console.log('  tagging version %s on master'.blue, methods.document.object.version);
 							next();
 						}
 					})
@@ -440,7 +441,7 @@ var main = function () {
 										if (e) {
 											console.log(e.message);
 										} else {
-											console.log('  merging %s into ' + properties.branch.release, properties.branch.hotfix);
+											console.log(('  merging %s into ' + properties.branch.release).blue, properties.branch.hotfix);
 											next();
 										}
 									})
@@ -448,9 +449,9 @@ var main = function () {
 										if (e) {
 											console.log(stdout);
 										} else {
-											if (cli.verbose) console.log(stdout);
-											console.log('warning: Check the results of this merge carfully! Conflicts may be auto-resolved using hotfix.');
-											console.log('  removing %s branch', properties.branch.hotfix);
+											if (cli.verbose) console.log(stdout.grey);
+											console.log('warning'.red + ': Check the results of this merge carfully! Conflicts may be auto-resolved using hotfix.');
+											console.log('  removing %s branch'.blue, properties.branch.hotfix);
 											next();
 										}
 									})
@@ -458,13 +459,13 @@ var main = function () {
 										if (e) {
 											console.log(e.message);
 										} else {
-											if (cli.verbose) console.log(stdout);
+											if (cli.verbose) console.log(stdout.grey);
 											cli.bump = 'revision';
-											console.log('  auto-incrementing release branch');
-											console.log('note: if you would prefer a different release version, run "ripple bump <major/minor/revision>".');
+											console.log('  auto-incrementing release branch'.blue);
+											console.log('note'.underline + ': if you would prefer a different release version, run "ripple bump <major/minor/revision>".');
 											methods.document.increment();
 											methods.document.write(function () {
-												console.log('ok.');
+												console.log('ok.'.green);
 											}, 'release');
 										}
 									});
@@ -475,7 +476,7 @@ var main = function () {
 										if (e) {
 											console.log(e.message);
 										} else {
-											console.log('  merging %s into develop', properties.branch.hotfix);
+											console.log('  merging %s into develop'.blue, properties.branch.hotfix);
 											next();
 										}
 									})
@@ -483,8 +484,8 @@ var main = function () {
 										if (e) {
 											console.log(stdout);
 										} else {
-											if (cli.verbose) console.log(stdout);
-											console.log('  removing %s branch', properties.branch.hotfix);
+											if (cli.verbose) console.log(stdout.grey);
+											console.log('  removing %s branch'.blue, properties.branch.hotfix);
 											next();
 										}
 									})
@@ -492,8 +493,8 @@ var main = function () {
 										if (e) {
 											console.log(e.message);
 										} else {
-											if (cli.verbose) console.log(stdout);
-											console.log('ok.');
+											if (cli.verbose) console.log(stdout.grey);
+											console.log('ok.'.green);
 										}
 									});
 							}
@@ -505,17 +506,17 @@ var main = function () {
 		// Just update revision
 		console.log('Bumping version number');
 		if (!properties.branch.isRelease) {
-			console.log('error: You can only manually bump versions on a release branch.');
+			console.log('error: '.red + 'You can only manually bump versions on a release branch.');
 			process.exit(1);
 		}
 		methods.document.read('HEAD', function () {
 			methods.document.increment();
 			methods.document.write(function () {
-				console.log('ok.');
+				console.log('ok.'.green);
 			}, 'release');
 		});
 	} else {
-		console.log('error: Nothing to do. %s', defaultMessage);
+		console.log('error: '.red + 'Nothing to do. %s', defaultMessage);
 	}
 };
 
