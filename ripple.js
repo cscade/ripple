@@ -70,13 +70,12 @@ var exec = {
 };
 
 cli
-	.option('current', 'Output current release version')
-	.option('-r, create-release', 'Create a new release branch (from develop)')
-	.option('-h, create-hotfix', 'Create a new hotfix branch (from master)')
+	.option('status', 'Output current status')
+	.option('start <kind>', 'Create a new release or hotfix branch [release | hotfix]')
+	.option('bump <part>', 'Bump version number while on a release branch [major | minor | revision]')
 	.option('-f, finalize', 'Integrate current release or hotfix branch')
-	.option('bump [part]', 'Bump version number [major | minor | revision]', 'revision')
 	.option('-p, package <location>', 'Relative path of package.json file to modify [./package.json]', './package.json')
-	.option('-c', 'Commit file changes automatically');
+	.option('-c, commit', 'Commit file changes automatically');
 
 cli.on('--help', function(){
 	console.log('  Examples:');
@@ -245,14 +244,15 @@ methods.document.increment = function (doc) {
  * Primary logic flow.
  */
 var main = function () {
-	console.log('*** Working tree is %s, current branch is [%s].', dirty ? 'dirty' : 'clean', properties.branch.name);
-	console.log('  There is %s a release branch.', properties.branch.exists.release ? 'already' : 'not');
-	console.log('  There is %s a hotfix branch.', properties.branch.exists.hotfix ? 'already' : 'not');
-	console.log('  Your current branch is for %s.', (properties.branch.release || properties.branch.hotfix) ? 'a release or hotfix' : 'general development or a feature');
-	if (cli.current) {
-		// Output current application version
+	if (cli.status) {
+		// Output current status
 		methods.file.read(path.resolve(cli.package), function (doc) {
-			console.log('Application: %s %s', doc.name, doc.version);
+			console.log('Status');
+			console.log('  Working on: %s %s', doc.name, doc.version);
+			console.log('  With a package located at: %s', path.resolve(cli.package));
+			console.log('  Working tree is %s, current branch is [%s].', dirty ? 'dirty' : 'clean', properties.branch.name);
+			console.log(properties.branch.exists.release ? '  You cannot create a release branch, one already exists.' : '  You may create a release branch with "ripple start release bump <major/minor/revision>"');
+			console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "ripple start hotfix"');
 			console.log('ok.');
 		});
 	} else if (cli.createRelease || cli.createHotfix) {
