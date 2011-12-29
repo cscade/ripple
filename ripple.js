@@ -1,4 +1,4 @@
-#!/usr/local/bin/node
+#!/usr/bin/env node
 /*!
  * ripple.js
  * Ripple
@@ -43,43 +43,47 @@ var defaultMessage = 'Use --help for command line options.',
  * Automatically queues calls to exec, and guarantees execution order.
  */
 var exec = {
+	begin: function (args, next) {
+		if (cli.debug) console.error('debug: begin called. new exec queue.');
+		this.queue = [];
+		this.send(args, next);
+		this.fresh = true;
+		process.nextTick(function () {
+			if (cli.debug) console.error('debug: next tick. calling next.');
+			exec.fresh = false;
+			exec.next();
+		});
+		return this;
+	},
 	send: function (args, next) {
-		this.queue = this.queue || [];
+		if (cli.debug) console.error('debug: send called.');
+		if (typeof next !== 'function') throw new Error('exec: You cannot begin() or send() without a callback.');
 		this.queue.unshift([args, next]);
-		this.next();
 		return this;
 	},
 	go: function (queueObj) {
 		if (queueObj) {
-			systemExec(queueObj[0], function (e, stdout, stderr) {
-				// Proceed even on error
-				try {
-					queueObj[1](e, stdout, stderr, exec.next);
-				} catch (e) {
-					// If the client isn't paying attention, just blindly proceed.
-					exec.next();
-				}
-			});
+			if (cli.debug) console.error('debug: go called. queue depth %s. "%s"', exec.queue.length, queueObj[0]);
+			systemExec(queueObj[0], function (e, stdout, stderr) { queueObj[1](e, stdout, stderr, exec.next); });
+		} else {
+			if (cli.debug) console.error('debug warning: go called with no job. Look for an errant "next();".');
 		}
 	},
 	next: function () {
-		process.nextTick(function () {
-			exec.go(exec.queue.pop());
-		});
+		if (cli.debug) console.error('debug: next called. queue depth %s.', exec.queue.length);
+		if (exec.fresh) throw new Error('exec: Do not call next() programmatically. Execution will begin automatically on nextTick.');
+		exec.go(exec.queue.pop());
 	}
 };
 
 cli
-	.version('0.0.1')
-	.option('-R, --create-release', 'Create a new release branch (from develop)')
-	.option('-H, --create-hotfix', 'Create a new hotfix branch (from master)')
-	.option('-F, --finalize', 'Integrate current release or hotfix branch')
-	.option('-p, --package [location]', 'Relative path of package.json file to modify [./package.json]', './package.json')
-	.option('-M, --major', 'Bump major version')
-	.option('-m, --minor', 'Bump minor version')
-	.option('-r, --revision', 'Bump revision')
-	.option('-v, --current', 'Output current release version')
-	.option('-c, --commit', 'Commit file changes automatically');
+	.option('status', 'Output current status')
+	.option('start <kind>', 'Create a new release or hotfix branch [release | hotfix]')
+	.option('bump <part>', 'Bump version number while on a release branch [major | minor | revision]')
+	.option('-f, finalize', 'Integrate current release or hotfix branch')
+	.option('-p, package <location>', 'Relative path of package.json file to modify [./package.json]', './package.json')
+	.option('no-commit', 'Do not commit version changes automatically')
+	.option('-d, debug', 'debug output');
 
 cli.on('--help', function(){
 	console.log('  Examples:');
@@ -107,6 +111,7 @@ cli.parse(process.argv);
  * @param {Function} next
  */
 methods.file.read = function (uri, next) {
+	if (cli.debug) console.error('debug: file.read called.');
 	fs.readFile(uri, 'utf8', function (e, data) {
 		if (e) {
 			console.error('error: %s could not be read. File does not exist.', uri);
@@ -133,6 +138,7 @@ methods.file.read = function (uri, next) {
  * @param {Function} next
  */
 methods.file.write = function (doc, uri, next) {
+	if (cli.debug) console.error('debug: file.write called.');
 	fs.writeFile(uri, JSON.stringify(doc, null, 4), 'utf8', function (e, data) {
 		if (e) {
 			console.error('error: %s could not be written.');
@@ -150,13 +156,24 @@ methods.file.write = function (doc, uri, next) {
  * 
  * Read in the document, and update local variables.
  * 
+ * @param {String} branch - branch to checkout before reading
  * @param {Function} next
  */
-methods.document.read = function (next) {
-	methods.file.read(path.resolve(cli.package), function (doc) {
-		methods.document.version.to = doc.version.split('.').map(Number);
-		methods.document.version.from = methods.document.version.to.filter(function () { return true; }).join('.');
-		next(doc);
+methods.document.read = function (branch, next) {
+	if (cli.debug) console.error('debug: document.read called.');
+	if (typeof branch !== 'string') throw new Error('Document: You must specify a branch to read package.json from.');
+	if (cli.debug) console.error('debug: checking out %s.', branch);
+	exec.begin('git checkout ' + branch, function (e) {
+		if (e) {
+			console.log(e.message);
+		} else {
+			methods.file.read(path.resolve(cli.package), function (doc) {
+				methods.document.object = doc;
+				methods.document.version.to = doc.version.split('.').map(Number);
+				methods.document.version.from = methods.document.version.to.filter(function () { return true; }).join('.');
+				next();
+			});
+		}
 	});
 };
 
@@ -165,55 +182,60 @@ methods.document.read = function (next) {
  * 
  * Write the document, and optionally commit.
  * 
- * @param {Object} doc
- * @param {Function} next
+ * @param {Function} proceed
  * @param {String} alias
  */
-methods.document.write = function (doc, next, alias) {
-	methods.file.write(doc, path.resolve(cli.package), function () {
-		if (cli.commit) {
+methods.document.write = function (doc, proceed, alias) {
+	if (cli.debug) console.error('debug: document.write called.');
+	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
+		if (!cli.noCommit) {
 			console.log('*** Commiting changes...');
-			exec('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + doc.version + '"', function (e, stdout) {
-				if (e) {
-					console.log(e);
-				} else {
-					console.log(stdout);
-					if (alias) {
-						// Rename branch
-						exec('git branch -m ' + alias + '-' + doc.version, function (e) {
-							if (e) {
-								console.log(e);
-							} else {
-								try {
-									next();
-								} catch (e) {}
-							}
-						});
+			exec
+				.begin('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, stdout, stderr, next) {
+					if (e) {
+						console.log(e.message);
 					} else {
-						try {
+						console.log(stdout);
+						if (alias) {
+							// Rename branch
 							next();
-						} catch (e) {}
-					}
-				}
-			});
-		} else {
-			exec('git status', function (e, stdout) {
-				if (e) {
-					console.log(e);
-				} else {
-					console.log(stdout);
-					exec('git diff ' + path.resolve(cli.package), function (e, stdout) {
-						if (e) {
-							console.log(e);
 						} else {
-							console.log(stdout);
 							try {
-								next();
+								proceed();
 							} catch (e) {}
 						}
-					});
-				}
-			});
+					}
+				})
+				.send('git branch -m ' + alias + '-' + methods.document.object.version, function (e, stdout, stderr, next) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						try {
+							proceed();
+						} catch (e) {}
+					}
+				});
+		} else {
+			exec
+				.begin('git status', function (e, stdout, stderr, next) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						console.log(stdout);
+						// Show diff
+						next();
+					}
+				})
+				.send('git diff ' + path.resolve(cli.package), function (e, stdout, stderr, next) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						console.log(stdout);
+						try {
+							proceed();
+						} catch (e) {}
+					}
+				});
 		}
 	});
 };
@@ -222,24 +244,22 @@ methods.document.write = function (doc, next, alias) {
  * increment
  * 
  * Increment the version number.
- * 
- * @param {Object} doc
  */
-methods.document.increment = function (doc) {
-	if (cli.revision) {
+methods.document.increment = function () {
+	if (cli.bump === 'revision') {
 		methods.document.version.to[2]++;
 	}
-	if (cli.minor) {
+	if (cli.bump === 'minor') {
 		methods.document.version.to[1]++;
 		methods.document.version.to[2] = 0;
 	}
-	if (cli.major) {
+	if (cli.bump === 'major') {
 		methods.document.version.to[0]++;
 		methods.document.version.to[1] = 0;
 		methods.document.version.to[2] = 0;
 	}
 	console.log('*** Updating version: %s -> %s', methods.document.version.from, methods.document.version.to.join('.'));
-	doc.version = methods.document.version.to.join('.');
+	methods.document.object.version = methods.document.version.to.join('.');
 };
 
 /**
@@ -248,50 +268,49 @@ methods.document.increment = function (doc) {
  * Primary logic flow.
  */
 var main = function () {
-	console.log('*** Working tree is %s, current branch is [%s].', dirty ? 'dirty' : 'clean', properties.branch.name);
-	console.log('  There is %s a release branch.', properties.branch.exists.release ? 'already' : 'not');
-	console.log('  There is %s a hotfix branch.', properties.branch.exists.hotfix ? 'already' : 'not');
-	console.log('  Your current branch is for %s.', (properties.branch.release || properties.branch.hotfix) ? 'a release or hotfix' : 'general development or a feature');
-	if (cli.current) {
-		// Output current application version
+	if (cli.status) {
+		// Output current status
 		methods.file.read(path.resolve(cli.package), function (doc) {
-			console.log('Application: %s %s', doc.name, doc.version);
+			console.log('Status');
+			console.log('  Working on: %s %s', doc.name, doc.version);
+			console.log('  With a package located at: %s', path.resolve(cli.package));
+			console.log('  Working tree is %s, current branch is [%s].', dirty ? 'dirty' : 'clean', properties.branch.name);
+			if (!dirty) {
+				console.log(properties.branch.exists.release ? '  You cannot create a release branch, one already exists.' : '  You may create a release branch with "ripple start release bump <major/minor/revision>"');
+				console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "ripple start hotfix"');
+			}
 			console.log('ok.');
 		});
-	} else if (cli.createRelease || cli.createHotfix) {
+	} else if (cli.start) {
 		if (dirty) {
 			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
-		if (!cli.major && !cli.minor && (!cli.revision && cli.createRelease)) {
+		if (cli.bump !== 'major' && cli.bump !== 'minor' && (cli.bump !== 'revision' && cli.start === 'release')) {
 			console.log('error: Can\'t create a new release without bumping version. %s', defaultMessage);
 			process.exit(1);
 		}
-		if (cli.createRelease) {
+		if (cli.start === 'release') {
 			// Create release
 			if (properties.branch.exists.release) {
 				console.log('error: You already have a release branch!');
 				process.exit(1);
 			}
-			exec('git checkout master', function (e, stdout, stderr) {
-				if (e) {
-					console.log(e);
-				} else {
-					methods.document.read(function (doc) {
-						methods.document.increment(doc);
-						console.log('*** Creating new release branch...');
-						if (properties.branch.exists.hotfix) console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
-						exec('git checkout -b release-' + doc.version + ' develop', function (e, stdout, stderr) {
-							if (e) {
-								console.log(e);
-							} else {
-								methods.document.write(doc, function () {
-									console.log('ok.');
-								});
-							}
-						});
-					});
+			methods.document.read('master', function () {
+				methods.document.increment();
+				console.log('*** Creating new release branch from "develop"...');
+				if (properties.branch.exists.hotfix) {
+					console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
 				}
+				exec.begin('git checkout -b release-' + methods.document.object.version + ' develop', function (e, stdout, stderr, next) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						methods.document.write(function () {
+							console.log('ok.');
+						});
+					}
+				});
 			});
 		} else {
 			// Create hotfix
@@ -299,27 +318,23 @@ var main = function () {
 				console.log('error: You already have a hotfix branch!');
 				process.exit(1);
 			}
-			exec('git checkout master', function (e, stdout, stderr) {
-				if (e) {
-					console.log(e);
-				} else {
-					methods.document.read(function (doc) {
-						// *** hotfixes imply a revision bump only. Ignore version bump flags
-						methods.document.version.to[2]++;
-						doc.version = methods.document.version.to.join('.');
-						console.log('*** Creating new hotfix branch...');
-						if (properties.branch.exists.release) console.log('warning: A release branch exists. You must finalize the hotfix before finalizing the release.');
-						exec('git checkout -b hotfix-' + doc.version + ' master', function (e, stdout, stderr) {
-							if (e) {
-								console.log(e);
-							} else {
-								methods.document.write(doc, function () {
-									console.log('ok.');
-								});
-							}
-						});
-					});
+			methods.document.read('master', function (doc) {
+				// *** hotfixes imply a revision bump only. Ignore version bump flags
+				cli.bump = 'revision';
+				methods.document.increment();
+				console.log('*** Creating new hotfix branch from "master"...');
+				if (properties.branch.exists.release) {
+					console.log('warning: A release branch exists. You must finalize the hotfix before finalizing the release.');
 				}
+				exec.begin('git checkout -b hotfix-' + doc.version + ' master', function (e, stdout, stderr, next) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						methods.document.write(doc, function () {
+							console.log('ok.');
+						});
+					}
+				});
 			});
 		}
 	} else if (cli.finalize) {
@@ -342,7 +357,7 @@ var main = function () {
 			methods.document.read(function (doc) {
 				exec('git checkout master', function (e, stdout) {
 					if (e) {
-						console.log(e);
+						console.log(e.message);
 					} else {
 						console.log('*** Finalizing release branch...');
 						console.log('* merging %s into master', properties.branch.name);
@@ -355,11 +370,11 @@ var main = function () {
 								console.log('* tagging version %s on master', doc.version);
 								exec('git tag -a ' + doc.version + ' -m "version ' + doc.version + '"', function (e) {
 									if (e) {
-										console.log(e);
+										console.log(e.message);
 									} else {
 										exec('git checkout develop', function (e) {
 											if (e) {
-												console.log(e);
+												console.log(e.message);
 											} else {
 												console.log('* merging %s into develop', properties.branch.name);
 												exec('git merge --no-ff ' + properties.branch.name, function (e, stdout, stderr) {
@@ -371,7 +386,7 @@ var main = function () {
 														console.log('* removing release branch');
 														exec('git branch -d ' + properties.branch.name, function (e, stdout) {
 															if (e) {
-																console.log(e);
+																console.log(e.message);
 															} else {
 																console.log(stdout);
 																console.log('ok.');
@@ -395,7 +410,7 @@ var main = function () {
 			methods.document.read(function (doc) {
 				exec('git checkout master', function (e, stdout) {
 					if (e) {
-						console.log(e);
+						console.log(e.message);
 					} else {
 						console.log('*** Finalizing hotfix branch...');
 						console.log('* merging %s into master', properties.branch.name);
@@ -408,7 +423,7 @@ var main = function () {
 								console.log('* tagging version %s on master', doc.version);
 								exec('git tag -a ' + doc.version + ' -m "version ' + doc.version + '"', function (e) {
 									if (e) {
-										console.log(e);
+										console.log(e.message);
 									} else {
 										if (properties.branch.exists.release) {
 											// Merge into release
@@ -417,7 +432,7 @@ var main = function () {
 												
 												exec('git checkout ' + releaseBranch, function (e) {
 													if (e) {
-														console.log(e);
+														console.log(e.message);
 													} else {
 														console.log('* merging %s into ' + releaseBranch, properties.branch.name);
 														exec('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.name, function (e, stdout, stderr) {
@@ -430,7 +445,7 @@ var main = function () {
 																console.log('* removing hotfix branch');
 																exec('git branch -d ' + properties.branch.name, function (e, stdout) {
 																	if (e) {
-																		console.log(e);
+																		console.log(e.message);
 																	} else {
 																		console.log(stdout);
 																		methods.document.version.to[2]++;
@@ -451,7 +466,7 @@ var main = function () {
 											// Merge into develop
 											exec('git checkout develop', function (e) {
 												if (e) {
-													console.log(e);
+													console.log(e.message);
 												} else {
 													console.log('* merging %s into develop', properties.branch.name);
 													exec('git merge --no-ff ' + properties.branch.name, function (e, stdout, stderr) {
@@ -463,7 +478,7 @@ var main = function () {
 															console.log('* removing hotfix branch');
 															exec('git branch -d ' + properties.branch.name, function (e, stdout) {
 																if (e) {
-																	console.log(e);
+																	console.log(e.message);
 																} else {
 																	console.log(stdout);
 																	console.log('ok.');
@@ -482,7 +497,7 @@ var main = function () {
 				});
 			});
 		}
-	} else if (cli.major || cli.minor || cli.revision) {
+	} else if (cli.bump === 'major' || cli.bump === 'minor' || cli.bump === 'revision') {
 		// Just update revision
 		if (!properties.branch.release) {
 			console.log('error: You can only manually bump versions on a release branch.');
@@ -503,7 +518,7 @@ var main = function () {
  * Preload all state info.
  */
 exec
-	.send('git status|grep -c "working directory clean"', function (e, stdout, stderr, next) {
+	.begin('git status|grep -c "working directory clean"', function (e, stdout, stderr, next) {
 		dirty = stdout.trim() === '0';
 		next();
 	})
