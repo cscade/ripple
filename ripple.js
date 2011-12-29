@@ -63,8 +63,10 @@ var exec = {
 		}
 	},
 	next: function () {
+		console.log('next called. queue depth %s', exec.queue.length);
 		process.nextTick(function () {
 			exec.go(exec.queue.pop());
+			console.log('go called. queue depth %s', exec.queue.length);
 		});
 	}
 };
@@ -283,6 +285,7 @@ var main = function () {
 							if (properties.branch.exists.hotfix) {
 								console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
 							}
+							console.log('would next');
 							next();
 						});
 					}
