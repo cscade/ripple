@@ -232,10 +232,10 @@ var main = function () {
 			console.log('Status');
 			console.log('  Working on: %s %s', doc.name.blue, doc.version.blue);
 			console.log('  With a package located at: %s', path.resolve(cli.package).blue);
-			console.log('  Working tree is %s, current branch is [%s].', dirty ? 'dirty' : 'clean', properties.branch.execution.blue);
+			console.log('  Working tree is %s, current branch is %s.', dirty ? 'dirty' : 'clean', properties.branch.execution.blue);
 			if (!dirty) {
-				console.log(properties.branch.exists.release ? '  You cannot create a release branch, one already exists.' : '  You may create a release branch with "ripple start release bump <major/minor/revision>"');
-				console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "ripple start hotfix"');
+				console.log(properties.branch.exists.release ? '  You cannot create a release branch, one already exists.' : '  You may create a release branch with "' + 'ripple start release bump <major/minor/revision>'.bold + '"');
+				console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "' + 'ripple start hotfix'.bold + '"');
 			}
 			console.log('ok.'.green.bold);
 		});
