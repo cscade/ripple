@@ -161,9 +161,10 @@ methods.file.write = function (doc, uri, next) {
 methods.document.read = function (next) {
 	if (cli.debug) console.error('debug: document.read called.');
 	methods.file.read(path.resolve(cli.package), function (doc) {
+		methods.document.object = doc;
 		methods.document.version.to = doc.version.split('.').map(Number);
 		methods.document.version.from = methods.document.version.to.filter(function () { return true; }).join('.');
-		next(doc);
+		next();
 	});
 };
 
@@ -172,17 +173,16 @@ methods.document.read = function (next) {
  * 
  * Write the document, and optionally commit.
  * 
- * @param {Object} doc
  * @param {Function} proceed
  * @param {String} alias
  */
 methods.document.write = function (doc, proceed, alias) {
 	if (cli.debug) console.error('debug: document.write called.');
-	methods.file.write(doc, path.resolve(cli.package), function () {
+	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
 		if (cli.commit) {
 			console.log('*** Commiting changes...');
 			exec
-				.begin('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + doc.version + '"', function (e, stdout, stderr, next) {
+				.begin('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, stdout, stderr, next) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -197,7 +197,7 @@ methods.document.write = function (doc, proceed, alias) {
 						}
 					}
 				})
-				.send('git branch -m ' + alias + '-' + doc.version, function (e, stdout, stderr, next) {
+				.send('git branch -m ' + alias + '-' + methods.document.object.version, function (e, stdout, stderr, next) {
 					if (e) {
 						console.log(e.message);
 					} else {
@@ -235,10 +235,8 @@ methods.document.write = function (doc, proceed, alias) {
  * increment
  * 
  * Increment the version number.
- * 
- * @param {Object} doc
  */
-methods.document.increment = function (doc) {
+methods.document.increment = function () {
 	if (cli.bump === 'revision') {
 		methods.document.version.to[2]++;
 	}
@@ -252,7 +250,7 @@ methods.document.increment = function (doc) {
 		methods.document.version.to[2] = 0;
 	}
 	console.log('*** Updating version: %s -> %s', methods.document.version.from, methods.document.version.to.join('.'));
-	doc.version = methods.document.version.to.join('.');
+	methods.document.object.version = methods.document.version.to.join('.');
 };
 
 /**
@@ -294,22 +292,21 @@ var main = function () {
 					if (e) {
 						console.log(e.message);
 					} else {
-						methods.document.read(function (doc) {
-							methods.document.increment(doc);
+						methods.document.read(function () {
+							methods.document.increment();
 							console.log('*** Creating new release branch...');
 							if (properties.branch.exists.hotfix) {
 								console.log('warning: A hotfix branch exists. You must finalize the hotfix before finalizing the release.');
 							}
-							if (cli.debug) console.error('debug: would next');
 							next();
 						});
 					}
 				})
-				.send('git checkout -b release-' + doc.version + ' develop', function (e, stdout, stderr, next) {
+				.send('git checkout -b release-' + methods.document.object.version + ' develop', function (e, stdout, stderr, next) {
 					if (e) {
 						console.log(e.message);
 					} else {
-						methods.document.write(doc, function () {
+						methods.document.write(function () {
 							console.log('ok.');
 						});
 					}
