@@ -24,9 +24,11 @@ var methods = {
 
 var properties = {
 	branch: {
-		name: '',
-		release: false,
-		hotfix: false,
+		execution: '',
+		release: '',
+		hotfix: '',
+		isRelease: false,
+		isHotfix: false,
 		exists: {
 			release: false,
 			hotfix: false
@@ -236,7 +238,7 @@ var main = function () {
 			console.log('Status');
 			console.log('  Working on: %s %s', doc.name, doc.version);
 			console.log('  With a package located at: %s', path.resolve(cli.package));
-			console.log('  Working tree is %s, current branch is [%s].', dirty ? 'dirty' : 'clean', properties.branch.name);
+			console.log('  Working tree is %s, current branch is [%s].', dirty ? 'dirty' : 'clean', properties.branch.execution);
 			if (!dirty) {
 				console.log(properties.branch.exists.release ? '  You cannot create a release branch, one already exists.' : '  You may create a release branch with "ripple start release bump <major/minor/revision>"');
 				console.log(properties.branch.exists.hotfix ? '  You cannot create a hotfix branch, one already exists.' : '  You may create a hotfix branch with "ripple start hotfix"');
@@ -305,11 +307,11 @@ var main = function () {
 			console.log('error: Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
 			process.exit(0);
 		}
-		if (!properties.branch.release && !properties.branch.hotfix) {
+		if (!properties.branch.isRelease && !properties.branch.isHotfix) {
 			console.log('error: You can only finish a release or hotfix branch!');
 			process.exit(1);
 		}
-		if (properties.branch.release && properties.branch.exists.hotfix) {
+		if (properties.branch.isRelease && properties.branch.exists.hotfix) {
 			console.log('error: You must finish your hotfix before finishing your release.');
 			process.exit(1);
 		}
@@ -323,11 +325,11 @@ var main = function () {
 							console.log(e.message);
 						} else {
 							console.log('*** Finalizing release branch...');
-							console.log('  merging %s into master', properties.branch.name);
+							console.log('  merging %s into master', properties.branch.execution);
 							next();
 						}
 					})
-					.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.name, function (e, next, stdout) {
+					.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.execution, function (e, next, stdout) {
 						if (e) {
 							console.log(stdout);
 						} else {
@@ -347,11 +349,11 @@ var main = function () {
 						if (e) {
 							console.log(e.message);
 						} else {
-							console.log('  merging %s into develop', properties.branch.name);
+							console.log('  merging %s into develop', properties.branch.execution);
 							next();
 						}
 					})
-					.send('git merge --no-ff ' + properties.branch.name, function (e, next, stdout) {
+					.send('git merge --no-ff ' + properties.branch.execution, function (e, next, stdout) {
 						if (e) {
 							console.log('error: Merge failed.');
 							console.log(stdout);
@@ -361,7 +363,7 @@ var main = function () {
 							next();
 						}
 					})
-					.send('git branch -d ' + properties.branch.name, function (e, next, stdout) {
+					.send('git branch -d ' + properties.branch.execution, function (e, next, stdout) {
 						if (e) {
 							console.log(e.message);
 						} else {
@@ -382,11 +384,11 @@ var main = function () {
 							console.log(e.message);
 						} else {
 							console.log('*** Finalizing hotfix branch...');
-							console.log('  merging %s into master', properties.branch.name);
+							console.log('  merging %s into master', properties.branch.execution);
 							next();
 						}
 					})
-					.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.name, function (e, next, stdout) {
+					.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.execution, function (e, next, stdout) {
 						if (e) {
 							console.log(stdout);
 						} else {
@@ -410,11 +412,11 @@ var main = function () {
 										if (e) {
 											console.log(e.message);
 										} else {
-											console.log('  merging %s into ' + releaseBranch, properties.branch.name);
+											console.log('  merging %s into ' + releaseBranch, properties.branch.execution);
 											next();
 										}
 									})
-									.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.name, function (e, next, stdout) {
+									.send('git merge --no-ff -s recursive -Xtheirs ' + properties.branch.execution, function (e, next, stdout) {
 										if (e) {
 											console.log(stdout);
 										} else {
@@ -424,7 +426,7 @@ var main = function () {
 											next();
 										}
 									})
-									.send('git branch -d ' + properties.branch.name, function (e, next, stdout) {
+									.send('git branch -d ' + properties.branch.execution, function (e, next, stdout) {
 										if (e) {
 											console.log(e.message);
 										} else {
@@ -445,11 +447,11 @@ var main = function () {
 										if (e) {
 											console.log(e.message);
 										} else {
-											console.log('  merging %s into develop', properties.branch.name);
+											console.log('  merging %s into develop', properties.branch.execution);
 											next();
 										}
 									})
-									.send('git merge --no-ff ' + properties.branch.name, function (e, next, stdout) {
+									.send('git merge --no-ff ' + properties.branch.execution, function (e, next, stdout) {
 										if (e) {
 											console.log(stdout);
 										} else {
@@ -458,7 +460,7 @@ var main = function () {
 											next();
 										}
 									})
-									.send('git branch -d ' + properties.branch.name, function (e, next, stdout) {
+									.send('git branch -d ' + properties.branch.execution, function (e, next, stdout) {
 										if (e) {
 											console.log(e.message);
 										} else {
@@ -473,7 +475,7 @@ var main = function () {
 		}
 	} else if (cli.bump === 'major' || cli.bump === 'minor' || cli.bump === 'revision') {
 		// Just update revision
-		if (!properties.branch.release) {
+		if (!properties.branch.isRelease) {
 			console.log('error: You can only manually bump versions on a release branch.');
 			process.exit(1);
 		}
@@ -497,16 +499,19 @@ var main = function () {
 		next();
 	})
 	.send('git branch --no-color|sed -e "/^[^*]/d" -e "s/* \(.*\)/\ \1/"', function (e, next, stdout) {
-		properties.branch.name = stdout.trim().slice(2);
-		properties.branch.release = properties.branch.name.indexOf('release') !== -1;
-		properties.branch.hotfix = properties.branch.name.indexOf('hotfix') !== -1;
+		properties.branch.execution = stdout.trim().slice(2);
+		properties.branch.isRelease = properties.branch.execution.indexOf('release') !== -1;
+		properties.branch.isHotfix = properties.branch.execution.indexOf('hotfix') !== -1;
 		next();
 	})
-	.send('git branch|grep -c release', function (e, next, stdout) {
-		properties.branch.exists.release = stdout.trim() === '1';
+	.send('git branch|grep release', function (e, next, stdout) {
+		properties.branch.exists.release = stdout.trim().length > 0;
+		properties.branch.release = stdout.trim();
 		next();
 	})
-	.send('git branch|grep -c hotfix', function (e, next, stdout) {
-		properties.branch.exists.hotfix = stdout.trim() === '1';
+	.send('git branch|grep hotfix', function (e, next, stdout) {
+		properties.branch.exists.hotfix = stdout.trim().length > 0;
+		properties.branch.hotfix = stdout.trim();
+		console.log(properties);
 		main();
 	});
