@@ -361,7 +361,7 @@ var main = function () {
 			console.log('error: You must finish your hotfix before finishing your release.');
 			process.exit(1);
 		}
-		if (properties.branch.release) {
+		if (cli.finish === 'release') {
 			// Release integration
 			// checkout master, merge in release, checkout develop, merge in release, delete release
 			methods.document.read('HEAD', function () {
@@ -418,9 +418,8 @@ var main = function () {
 						}
 					});
 			});
-		}
-		if (properties.branch.hotfix) {
-			// Release integration
+		} else if (cli.finish === 'hotfix') {
+			// Hotfix integration
 			// checkout master, merge in hotfix, checkout develop, merge in hotfix, delete hotfix
 			methods.document.read(function (doc) {
 				exec('git checkout master', function (e, stdout) {
