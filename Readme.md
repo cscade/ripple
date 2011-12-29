@@ -1,6 +1,16 @@
-**This project is currently in it's infancy.**
+# Ripple
+
+Command line git repository & branch manager, with release tools. Written in Node.JS.
+
+## Installation
+
+No installation yet. **This project is currently in it's infancy.**
 
 Please check back as development occurs.
+
+## Inspiration
+
+This utility was inspired by and does it's best to adhere to the principals described in [Vincent Driessen's excellent blog post](http://nvie.com/posts/a-successful-git-branching-model/).
 
 ## License 
 
