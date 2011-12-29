@@ -152,7 +152,28 @@ methods.document.read = function (branch, next) {
 methods.document.write = function (proceed, alias) {
 	if (cli.debug) console.error('debug: document.write called.');
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
-		if (!cli.noCommit) {
+		if (cli.noCommit) {
+			(new Exec())
+				.send('git status', function (e, next, stdout) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						console.log(stdout);
+						// Show diff
+						next();
+					}
+				})
+				.send('git diff ' + path.resolve(cli.package), function (e, next, stdout) {
+					if (e) {
+						console.log(e.message);
+					} else {
+						console.log(stdout);
+						try {
+							proceed();
+						} catch (e) {}
+					}
+				});
+		} else {
 			console.log('  commiting changes');
 			(new Exec())
 				.send('git add ' + path.resolve(cli.package) + ' && git commit -m "bump version to ' + methods.document.object.version + '"', function (e, next, stdout) {
@@ -174,27 +195,6 @@ methods.document.write = function (proceed, alias) {
 					if (e) {
 						console.log(e.message);
 					} else {
-						try {
-							proceed();
-						} catch (e) {}
-					}
-				});
-		} else {
-			(new Exec())
-				.send('git status', function (e, next, stdout) {
-					if (e) {
-						console.log(e.message);
-					} else {
-						console.log(stdout);
-						// Show diff
-						next();
-					}
-				})
-				.send('git diff ' + path.resolve(cli.package), function (e, next, stdout) {
-					if (e) {
-						console.log(e.message);
-					} else {
-						console.log(stdout);
 						try {
 							proceed();
 						} catch (e) {}
