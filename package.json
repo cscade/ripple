@@ -21,6 +21,7 @@
         "node": "0.6.x"
     },
     "dependencies": {
-        "commander": ">= 0.0.0"
+        "commander": ">= 0.0.0",
+        "colors": ">= 0.0.0"
     }
 }
