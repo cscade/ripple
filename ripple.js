@@ -45,7 +45,7 @@ cli
 	.option('bump <part>', 'Bump version number while on a release branch [major | minor | revision]')
 	.option('finish <kind>', 'Finish and merge the current release or hotfix branch. Always commits! [release | hotfix]')
 	.option('-p, package <location>', 'Relative path of package.json file to modify [./package.json]', './package.json')
-	.option('no-commit', 'Do not commit version changes automatically')
+	.option('-n, no-commit', 'Do not commit version changes automatically')
 	.option('-d, debug', 'debug output')
 	.option('-v, verbose', 'verbose git output');
 
