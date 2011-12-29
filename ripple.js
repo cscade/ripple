@@ -42,8 +42,7 @@ var defaultMessage = 'Use --help for command line options.',
 
 cli
 	.option('status', 'Output current status')
-	.option('start <kind>', 'Create a new release or hotfix branch [feature | release | hotfix]')
-	.option('called <name>', 'Used in conjunction with "start feature" to specify a branch name')
+	.option('start <kind> [name]', 'Create a new branch of type [feature | release | hotfix]. If a feature, provide a name.')
 	.option('bump <part>', 'Bump version number while on a release branch [major | minor | revision]')
 	.option('finish <kind>', 'Finish and merge the current release or hotfix branch. Always commits! [release | hotfix]')
 	.option('-p, package <location>', 'Relative path of package.json file to modify [./package.json]', './package.json')
@@ -250,13 +249,17 @@ var main = function () {
 			process.exit(1);
 		}
 		if (cli.start === 'feature') {
-			if (!cli.called) {
-				console.log('error: '.red.bold + 'When starting a new feature, use the called flag. i.e. "ripple start feature called my_feature".');
+			if (typeof cli.args[0] !== 'string') {
+				console.log('error: '.red.bold + 'When starting a new feature, include a name. i.e. "ripple start feature my_feature".');
 				process.exit(1);
 			}
-			methods.document.read('master', function () {
-				console.log('  creating new %s branch from "%s"'.blue, cli.called, properties.branch.execution);
-				(new Exec()).send('git checkout -b ' + cli.called + ' ' + properties.branch.execution, function (e) {
+			if (properties.branch.isRelease || properties.branch.isHotfix || properties.branch.execution === 'master') {
+				console.log('error: '.red.bold + 'The new feature will be started relative to the current HEAD. Check out a feature branch or "develop" first.');
+				process.exit(1);
+			}
+			methods.document.read(properties.branch.execution, function () {
+				console.log('  creating new %s branch from "%s"'.blue, cli.args[0], properties.branch.execution);
+				(new Exec()).send('git checkout -b ' + cli.args[0] + ' ' + properties.branch.execution, function (e) {
 					if (e) {
 						console.log(e.message);
 					} else {
