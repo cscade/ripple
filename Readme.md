@@ -42,6 +42,15 @@ All examples below show the branch that is currently checked out within the prom
 	
 	... fix bugs, polish, do other stuff back over on develop, whatever ...
 	
+	iMac:Ripple cscade [release-0.0.13] $ ripple status
+	Status
+	  Current release: ripple 0.0.13
+	  With a package located at: /Users/cscade/Modules/Ripple/package.json
+	  Working tree is clean, current branch is release-0.0.14.
+	  You cannot create a release branch, one already exists.
+	  You may create a hotfix branch with "ripple start hotfix"
+	ok.
+	
 	iMac:Ripple cscade [release-0.0.13] $ ripple finish release
 	Finishing release branch
 	  merging release-0.0.13 into master
