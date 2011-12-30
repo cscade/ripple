@@ -25,6 +25,31 @@ All examples below show the branch that is currently checked out within the prom
 	
 	... do stuff, commit things ...
 	
+	iMac:Ripple cscade [docs] $ ripple finish feature 
+	Finishing feature branch
+	  merging docs into develop
+	  removing docs branch
+	ok.
+	
+	iMac:Ripple cscade [my_feature] $ ripple start release
+	Starting release branch
+	  creating new release branch from "develop"
+	  updating version: 0.0.12 -> 0.0.13
+	  commiting changes
+	[release-0.0.13 357f066] bump version to 0.0.13
+	 1 files changed, 1 insertions(+), 1 deletions(-)
+	ok.
+	
+	... fix bugs, polish, do other stuff back over on develop, whatever ...
+	
+	iMac:Ripple cscade [release-0.0.13] $ ripple finish release
+	Finishing release branch
+	  merging release-0.0.13 into master
+	  tagging version 0.0.13 on master
+	  merging release-0.0.13 into develop
+	  removing release-0.0.13 branch
+	ok.
+	
 	
 
 ## Help output
