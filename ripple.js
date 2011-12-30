@@ -127,6 +127,7 @@ methods.document.read = function (branch, next) {
 methods.document.write = function (proceed, alias) {
 	if (cli.debug) console.error('debug:'.grey.inverse + ' document.write called.');
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
+		cli.commit = !cli.commit;
 		if (cli.commit) {
 			console.log('  commiting changes'.blue);
 			(new Exec())
@@ -561,5 +562,4 @@ cli
 			properties.branch.hotfix = properties.branch.hotfix.slice(2);
 		}
 		cli.parse(process.argv);
-		cli.commit = !cli.commit;
 	});
