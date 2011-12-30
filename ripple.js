@@ -228,7 +228,7 @@ cli
 				process.exit(1);
 			}
 			if (properties.branch.execution.isRelease || properties.branch.execution.isHotfix || properties.branch.execution.name === 'master') {
-				console.log('error: '.red.bold + 'The new feature will be started relative to the current HEAD. Check out a feature branch or "develop" first.');
+				console.log('error: '.red.bold + 'New features must be started relative to "develop", or an existing feature branch.');
 				process.exit(1);
 			}
 			methods.document.read(properties.branch.execution.name, function () {
