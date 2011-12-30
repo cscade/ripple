@@ -1,16 +1,25 @@
 # Ripple
 
-Command line git repository & branch manager, with release tools. Written in Node.JS.
+## Command line git repository & branch manager, with (plans for) release tools.
+
+ripple was inspired by and does it's best to adhere to the principals described in Vincent Driessen's excellent blog post; [A successful Git branching model](http://nvie.com/posts/a-successful-git-branching-model/). By automating and enforcing a strict yet very logical branching model, ripple both makes working with your git repository easier as well as more robust and well documented at the same time.
+
+## Where it's meant to work
+
+I designed ripple for my development cycle, but it should integrate well into many existing workflows. It makes the following assumptions about your environment:
+
+	- You have node.js installed on your development system
+	- You have NPM
+	- You use git for your project, and have at least a "master" and "develop" branch
+	- Projects you manage with ripple have a package.json file containing at least "name" and "version" keys
+
+That's it. Projects can be in any language, and contain anything git can handle. ripple is available as a global executable in your terminal just like git, and uses git-like command options. As of right now, ripple does not create git repositories for you, but that is a planned feature.
 
 ## Installation
 
-No installation yet. **This project is currently in it's infancy.**
+Install ripple globally, so you will have access to it's binary.
 
-Please check back as development occurs.
-
-## Inspiration
-
-This utility was inspired by and does it's best to adhere to the principals described in Vincent Driessen's excellent blog post; [A successful Git branching model](http://nvie.com/posts/a-successful-git-branching-model/).
+	npm install -g ripple
 
 ## License 
 
