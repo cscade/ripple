@@ -1,6 +1,6 @@
 {
     "name": "ripple",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "description": "git repository & branch manager.",
     "keywords": [
         "git",
