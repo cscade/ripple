@@ -43,8 +43,6 @@ var properties = {
 	}
 };
 
-var defaultMessage = 'Use --help for command line options.';
-
 // Methods
 /**
  * read
@@ -516,14 +514,6 @@ cli
 	.option('-x, --no-commit', 'Do not commit version changes automatically')
 	.option('-d, --debug', 'show debug output')
 	.option('-v, --verbose', 'show verbose git output');
-
-// cli.on('--help', function () {
-// 	console.log('  Examples:');
-// 	console.log('');
-// 	console.log('    $ release.js --create-release --minor --commit');
-// 	console.log('      Create a new release branch from develop, increment the minor version number, and commit the result.');
-// 	console.log('');
-// });
 
 /**
  * Preload all state info.
