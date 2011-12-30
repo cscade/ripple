@@ -99,9 +99,7 @@ methods.file.write = function (doc, uri, next) {
  * @param {Function} next
  */
 methods.document.read = function (branch, next) {
-	if (cli.debug) console.error('debug:'.grey.inverse + ' document.read called.');
 	if (typeof branch !== 'string') throw new Error('Document: You must specify a branch to read package.json from.');
-	if (cli.debug) console.error('debug:'.grey.inverse + ' checking out %s.', branch);
 	(new Exec()).send('git checkout ' + branch, function (e) {
 		if (e) {
 			console.log(e.message);
@@ -125,7 +123,6 @@ methods.document.read = function (branch, next) {
  * @param {String} alias
  */
 methods.document.write = function (proceed, alias) {
-	if (cli.debug) console.error('debug:'.grey.inverse + ' document.write called.');
 	methods.file.write(methods.document.object, path.resolve(cli.package), function () {
 		if (cli.commit) {
 			console.log('  commiting changes'.blue);
