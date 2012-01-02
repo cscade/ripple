@@ -502,9 +502,10 @@ cli
 		}
 	});
 cli
-	.command('init <name> <version>')
-	.description('  Initialize a ripple project in this existing repository, with the given project name and version number.')
+	.command('init <name> [version]')
+	.description('  Initialize a ripple project in this existing repository, with the given project name and version number. [0.0.1]')
 	.action(function (name, version) {
+		version = version || '0.0.1';
 		if (version.split('.').length !== 3) {
 			console.log('error: '.red.bold + 'Version numbers must follow the major.minor.revision convention. i.e. 1.0.0');
 			process.exit(1);
