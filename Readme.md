@@ -6,6 +6,8 @@ ripple was inspired by and does it's best to adhere to the principals described 
 
 ## What it can do for you
 
+* Create a new git repository from scratch, with appropriate tree structure.
+* Create a new package.json and start managing an existing get repo / project.
 * Create "feature" branches, from other feature branches or from "develop".
 * Create "release" and "hotfix" branches with automated versioning.
 * Integrate release and hotfix branches for release, my properly merging them back into your master and development branches.
@@ -17,6 +19,15 @@ ripple was inspired by and does it's best to adhere to the principals described 
 ## Examples
 
 All examples below show the branch that is currently checked out within the prompt.
+
+	iMac:test cscade $ ripple init test
+	Initializing new ripple project
+	  creating new git repository where there was none
+	  creating new package.json on "master" for project test version 0.0.1
+	  commiting package.json
+	  creating new "develop" branch
+	ok.
+	
 
 	iMac:Ripple cscade [develop] $ ripple start feature docs
 	Starting feature branch
@@ -30,6 +41,7 @@ All examples below show the branch that is currently checked out within the prom
 	  merging docs into develop
 	  removing docs branch
 	ok.
+	
 	
 	iMac:Ripple cscade [my_feature] $ ripple start release
 	Starting release branch
@@ -50,6 +62,7 @@ All examples below show the branch that is currently checked out within the prom
 	  You cannot create a release branch, one already exists.
 	  You may create a hotfix branch with "ripple start hotfix"
 	ok.
+	
 	
 	iMac:Ripple cscade [release-0.0.13] $ ripple finish release
 	Finishing release branch
@@ -85,6 +98,11 @@ All examples below show the branch that is currently checked out within the prom
 	      Specify "feature", "release", or "hotfix".
 	      Always commits!
 
+	    init <name> [version]
+	      Initialize a ripple project here (creating a repository if needed), with the given project name and version number. [0.0.1]
+
+	    * 
+
 	  Options:
 
 	    -h, --help                output usage information
@@ -104,7 +122,7 @@ I designed ripple for my development cycle, but it should integrate well into ma
 * You use git for your project, and have at least a "master" and "develop" branch
 * Projects you manage with ripple have a package.json file containing at least "name" and "version" keys
 
-That's it. Projects can be in any language, and contain anything git can handle. ripple is available as a global executable in your terminal just like git, and uses git-like command options. As of right now, ripple does not create git repositories for you, but that is a planned feature.
+That's it. Projects can be in any language, and contain anything git can handle. ripple is available as a global executable in your terminal just like git, and uses git-like command options.
 
 ## Installation
 
