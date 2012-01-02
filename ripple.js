@@ -535,25 +535,49 @@ cli
 			if (e) {
 				// Package doesn't exist ... expected
 				console.log('Initializing new ripple project.');
-				(new Exec())
-					.send('git checkout -b master || git checkout master', function (e, next, stdout) {
-						if (cli.verbose) console.log(stdout.grey);
-						console.log('  creating new package.json on "master" for project %s version %s', name.blue, version.blue);
-						fs.writeFile(path.resolve(cli.package), JSON.stringify({ name: name, version: version }, null, 4), 'utf8', function (err) {
-							if (err) {
-								console.error('error: '.red + '%s could not be written.');
-								process.exit(1);
-							} else {
-								console.log('  creating new "develop" branch');
-								console.log('  commiting package.json');
-								next();
-							}
+				if (!methods.checkLive(true)) {
+					// No git repo yet
+					console.log('  creating new git repository where there was none');
+					(new Exec())
+						.send('git init', function (e, next) {
+							console.log('  creating new package.json on "master" for project %s version %s', name.blue, version.blue);
+							fs.writeFile(path.resolve(cli.package), JSON.stringify({ name: name, version: version }, null, 4), 'utf8', function (err) {
+								if (err) {
+									console.error('error: '.red + '%s could not be written.');
+									process.exit(1);
+								} else {
+									console.log('  commiting package.json');
+									console.log('  creating new "develop" branch');
+									next();
+								}
+							});
+						})
+						.send('git add ./package.json && git commit -m "create new package.json for ' + name + ' version ' + version + '" && git checkout -b develop', function (e, next, stdout) {
+							if (cli.verbose) console.log(stdout.grey);
+							console.log('ok.'.green.bold);
 						});
-					})
-					.send('git checkout -b develop && git add ./package.json && git commit -m "create new package.json for ' + name + ' version ' + version + '" && git checkout master && git merge --no-ff develop && git checkout develop', function (e, next, stdout) {
-						if (cli.verbose) console.log(stdout.grey);
-						console.log('ok.'.green.bold);
-					});
+				} else {
+					// Existing git repo
+					(new Exec())
+						.send('git checkout -b master || git checkout master', function (e, next, stdout) {
+							if (cli.verbose) console.log(stdout.grey);
+							console.log('  creating new package.json on "master" for project %s version %s', name.blue, version.blue);
+							fs.writeFile(path.resolve(cli.package), JSON.stringify({ name: name, version: version }, null, 4), 'utf8', function (err) {
+								if (err) {
+									console.error('error: '.red + '%s could not be written.');
+									process.exit(1);
+								} else {
+									console.log('  creating new "develop" branch');
+									console.log('  commiting package.json');
+									next();
+								}
+							});
+						})
+						.send('git checkout -b develop && git add ./package.json && git commit -m "create new package.json for ' + name + ' version ' + version + '" && git checkout master && git merge --no-ff develop && git checkout develop', function (e, next, stdout) {
+							if (cli.verbose) console.log(stdout.grey);
+							console.log('ok.'.green.bold);
+						});
+				}
 			} else {
 				try {
 					data = JSON.parse(data);
