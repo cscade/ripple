@@ -10,11 +10,13 @@ ripple was inspired by and does it's best to adhere to the principals described 
 * Create a new package.json and start managing an existing get repo / project.
 * Create "feature" branches, from other feature branches or from "develop".
 * Create "release" and "hotfix" branches with automated versioning.
-* Integrate release and hotfix branches for release, my properly merging them back into your master and development branches.
+* Integrate release and hotfix branches for release, by properly merging them back into your master and development branches.
 * Smartly integrate hotfix branches into an existing release branch rather than develop, if one exists, and
-* Automatically advance version on release branch if a hotfix was required during a release cycle.
+	* Automatically advance version on release branch if a hotfix was required during a release cycle.
 * Automatically tag releases with the correct integration version number.
-* Keep you adhered to the principals outlined in "A successful git branching model". Things like not having more than one active hotfix, making sure you apply hotfixes and releases in the right order and in the right places, etc.
+* Keep you adhered to the principals outlined in "A successful git branching model".
+	* No more than one active hotfix
+	* Make sure you apply hotfixes and releases in the right order
 
 ## Examples
 
