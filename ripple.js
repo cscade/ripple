@@ -40,6 +40,9 @@ var properties = {
 			from: '',
 			to: ''
 		}
+	},
+	repository: {
+		initialized: false
 	}
 };
 
@@ -520,7 +523,8 @@ cli
  */
 (new Exec())
 	.send('git status', function (e, next, stdout, stderr) {
-		if (stderr.indexOf('fatal') !== -1) {
+		properties.repository.initialized = stderr.indexOf('fatal') === -1;
+		if (!properties.repository.initialized) {
 			console.log('error: '.red.bold + 'git says this isn\'t a repository. Are you in the right folder?');
 			process.exit(1);
 		}
