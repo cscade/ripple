@@ -48,6 +48,23 @@ var properties = {
 
 // Methods
 /**
+ * checkLive
+ * 
+ * Check that a git repository exists in good standing to execute this command.
+ * 
+ * @param {Boolean} gentle - If true, do not process.exit on not exist, just return false.
+ */
+methods.checkLive = function (gentle) {
+	if (!gentle && !properties.repository.initialized) {
+		console.log('error: '.red.bold + 'git says this isn\'t a repository. Are you in the right folder?');
+		console.log('  If you would like to start a new repository here, use "ripple init <name> [version]" instead.');
+		process.exit(1);
+	} else {
+		return properties.repository.initialized;
+	}
+};
+
+/**
  * read
  * 
  * Read a json file at uri and pass it as an object.
@@ -204,6 +221,7 @@ cli
 	.command('status')
 	.description('  Output current status of the active project.')
 	.action(function () {
+		methods.checkLive();
 		methods.file.read(path.resolve(cli.package), function (doc) {
 			console.log('Status');
 			console.log('  Current release: %s %s', doc.name.blue, doc.version.blue);
@@ -220,6 +238,7 @@ cli
 	.command('start <type> [name]')
 	.description('  Create a new branch of type "feature", "release", or "hotfix".\n  If it\'s a feature branch, provide a name.')
 	.action(function (type, name) {
+		methods.checkLive();
 		console.log('Starting %s branch', type);
 		if (properties.branch.execution.dirty && type !== 'feature') {
 			console.log('error: '.red.bold + 'Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
@@ -293,6 +312,7 @@ cli
 	.command('bump <part>')
 	.description('  Bump version number while on a release branch.\n  Specify "major", "minor", or "revision".')
 	.action(function (part) {
+		methods.checkLive();
 		console.log('Bumping version number');
 		if (!properties.branch.execution.isRelease) {
 			console.log('error: '.red.bold + 'You can only manually bump versions on a release branch.');
@@ -309,6 +329,7 @@ cli
 	.command('finish <type>')
 	.description('  Finish and merge the current release or hotfix branch.\n  Specify "feature", "release", or "hotfix".' + '\n  ' + 'Always commits!'.underline)
 	.action(function (type) {
+		methods.checkLive();
 		console.log('Finishing %s branch', type);
 		if (properties.branch.execution.dirty) {
 			console.log('error: '.red.bold + 'Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
@@ -568,10 +589,6 @@ cli
 (new Exec())
 	.send('git status', function (e, next, stdout, stderr) {
 		properties.repository.initialized = stderr.indexOf('fatal') === -1;
-		if (!properties.repository.initialized) {
-			console.log('error: '.red.bold + 'git says this isn\'t a repository. Are you in the right folder?');
-			process.exit(1);
-		}
 		next();
 	})
 	.send('git status|grep -c "working directory clean"', function (e, next, stdout) {
