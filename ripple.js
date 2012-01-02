@@ -40,10 +40,30 @@ var properties = {
 			from: '',
 			to: ''
 		}
+	},
+	repository: {
+		initialized: false
 	}
 };
 
 // Methods
+/**
+ * checkLive
+ * 
+ * Check that a git repository exists in good standing to execute this command.
+ * 
+ * @param {Boolean} gentle - If true, do not process.exit on not exist, just return false.
+ */
+methods.checkLive = function (gentle) {
+	if (!gentle && !properties.repository.initialized) {
+		console.log('error: '.red.bold + 'git says this isn\'t a repository. Are you in the right folder?');
+		console.log('  If you would like to start a new repository here, use "ripple init <name> [version]" instead.');
+		process.exit(1);
+	} else {
+		return properties.repository.initialized;
+	}
+};
+
 /**
  * read
  * 
@@ -201,6 +221,7 @@ cli
 	.command('status')
 	.description('  Output current status of the active project.')
 	.action(function () {
+		methods.checkLive();
 		methods.file.read(path.resolve(cli.package), function (doc) {
 			console.log('Status');
 			console.log('  Current release: %s %s', doc.name.blue, doc.version.blue);
@@ -217,6 +238,7 @@ cli
 	.command('start <type> [name]')
 	.description('  Create a new branch of type "feature", "release", or "hotfix".\n  If it\'s a feature branch, provide a name.')
 	.action(function (type, name) {
+		methods.checkLive();
 		console.log('Starting %s branch', type);
 		if (properties.branch.execution.dirty && type !== 'feature') {
 			console.log('error: '.red.bold + 'Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
@@ -290,6 +312,7 @@ cli
 	.command('bump <part>')
 	.description('  Bump version number while on a release branch.\n  Specify "major", "minor", or "revision".')
 	.action(function (part) {
+		methods.checkLive();
 		console.log('Bumping version number');
 		if (!properties.branch.execution.isRelease) {
 			console.log('error: '.red.bold + 'You can only manually bump versions on a release branch.');
@@ -306,6 +329,7 @@ cli
 	.command('finish <type>')
 	.description('  Finish and merge the current release or hotfix branch.\n  Specify "feature", "release", or "hotfix".' + '\n  ' + 'Always commits!'.underline)
 	.action(function (type) {
+		methods.checkLive();
 		console.log('Finishing %s branch', type);
 		if (properties.branch.execution.dirty) {
 			console.log('error: '.red.bold + 'Can\'t start on a dirty working tree. Stash or commit your changes, then try again.');
@@ -499,6 +523,74 @@ cli
 		}
 	});
 cli
+	.command('init <name> [version]')
+	.description('  Initialize a ripple project here (creating a repository if needed), with the given project name and version number. [0.0.1]')
+	.action(function (name, version) {
+		version = version || '0.0.1';
+		if (version.split('.').length !== 3) {
+			console.log('error: '.red.bold + 'Version numbers must follow the major.minor.revision convention. i.e. 1.0.0');
+			process.exit(1);
+		}
+		fs.readFile(path.resolve(cli.package), 'utf8', function (e, data) {
+			if (e) {
+				// Package doesn't exist ... expected
+				console.log('Initializing new ripple project');
+				if (!methods.checkLive(true)) {
+					// No git repo yet
+					console.log('  creating new git repository where there was none');
+					(new Exec())
+						.send('git init', function (e, next) {
+							console.log('  creating new package.json on "master" for project %s version %s', name.blue, version.blue);
+							fs.writeFile(path.resolve(cli.package), JSON.stringify({ name: name, version: version }, null, 4), 'utf8', function (err) {
+								if (err) {
+									console.error('error: '.red + '%s could not be written.');
+									process.exit(1);
+								} else {
+									console.log('  commiting package.json');
+									console.log('  creating new "develop" branch');
+									next();
+								}
+							});
+						})
+						.send('git add ./package.json && git commit -m "create new package.json for ' + name + ' version ' + version + '" && git checkout -b develop', function (e, next, stdout) {
+							if (cli.verbose) console.log(stdout.grey);
+							console.log('ok.'.green.bold);
+						});
+				} else {
+					// Existing git repo
+					(new Exec())
+						.send('git checkout -b master || git checkout master', function (e, next, stdout) {
+							if (cli.verbose) console.log(stdout.grey);
+							console.log('  creating new package.json on "master" for project %s version %s', name.blue, version.blue);
+							fs.writeFile(path.resolve(cli.package), JSON.stringify({ name: name, version: version }, null, 4), 'utf8', function (err) {
+								if (err) {
+									console.error('error: '.red + '%s could not be written.');
+									process.exit(1);
+								} else {
+									console.log('  creating new "develop" branch');
+									console.log('  commiting package.json');
+									next();
+								}
+							});
+						})
+						.send('git checkout -b develop && git add ./package.json && git commit -m "create new package.json for ' + name + ' version ' + version + '" && git checkout master && git merge --no-ff develop && git checkout develop', function (e, next, stdout) {
+							if (cli.verbose) console.log(stdout.grey);
+							console.log('ok.'.green.bold);
+						});
+				}
+			} else {
+				try {
+					data = JSON.parse(data);
+					console.log('error: '.red.bold + 'An existing package.json file was found, describing this project as %s with version %s.', data.name.blue, data.version.blue);
+					process.exit(1);
+				} catch (e) {
+					console.log('error: '.red.bold + 'An existing package.json file was found, but could not be parsed. Either fix it manually, or remove it and re-execute "ripple init".');
+					process.exit(1);
+				}
+			}
+		});
+	});
+cli
 	.command('*')
 	.action(function () {
 		(new Exec()).send('ripple --help', function (e, next, stdout) {
@@ -520,10 +612,7 @@ cli
  */
 (new Exec())
 	.send('git status', function (e, next, stdout, stderr) {
-		if (stderr.indexOf('fatal') !== -1) {
-			console.log('error: '.red.bold + 'git says this isn\'t a repository. Are you in the right folder?');
-			process.exit(1);
-		}
+		properties.repository.initialized = stderr.indexOf('fatal') === -1;
 		next();
 	})
 	.send('git status|grep -c "working directory clean"', function (e, next, stdout) {
