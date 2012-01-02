@@ -502,6 +502,49 @@ cli
 		}
 	});
 cli
+	.command('init <name> <version>')
+	.description('  Initialize a ripple project in this existing repository, with the given project name and version number.')
+	.action(function (name, version) {
+		if (version.split('.').length !== 3) {
+			console.log('error: '.red.bold + 'Version numbers must follow the major.minor.revision convention. i.e. 1.0.0');
+			process.exit(1);
+		}
+		fs.readFile(path.resolve(cli.package), 'utf8', function (e, data) {
+			if (e) {
+				// Package doesn't exist ... expected
+				console.log('Initializing new ripple project.');
+				(new Exec())
+					.send('git checkout -b master || git checkout master', function (e, next, stdout) {
+						if (cli.verbose) console.log(stdout.grey);
+						console.log('  creating new package.json on "master" for project %s version %s', name.blue, version.blue);
+						fs.writeFile(path.resolve(cli.package), JSON.stringify({ name: name, version: version }, null, 4), 'utf8', function (err) {
+							if (err) {
+								console.error('error: '.red + '%s could not be written.');
+								process.exit(1);
+							} else {
+								console.log('  creating new "develop" branch');
+								console.log('  commiting package.json');
+								next();
+							}
+						});
+					})
+					.send('git checkout -b develop && git add ./package.json && git commit -m "create new package.json for ' + name + ' version ' + version + '" && git checkout master && git merge --no-ff develop && git checkout develop', function (e, next, stdout) {
+						if (cli.verbose) console.log(stdout.grey);
+						console.log('ok.'.green.bold);
+					});
+			} else {
+				try {
+					data = JSON.parse(data);
+					console.log('error: '.red.bold + 'An existing package.json file was found, describing this project as %s with version %s.', data.name.blue, data.version.blue);
+					process.exit(1);
+				} catch (e) {
+					console.log('error: '.red.bold + 'An existing package.json file was found, but could not be parsed. Either fix it manually, or remove it and re-execute "ripple init".');
+					process.exit(1);
+				}
+			}
+		});
+	});
+cli
 	.command('*')
 	.action(function () {
 		(new Exec()).send('ripple --help', function (e, next, stdout) {
