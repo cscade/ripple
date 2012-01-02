@@ -524,7 +524,7 @@ cli
 	});
 cli
 	.command('init <name> [version]')
-	.description('  Initialize a ripple project in this existing repository, with the given project name and version number. [0.0.1]')
+	.description('  Initialize a ripple project here (creating a repository if needed), with the given project name and version number. [0.0.1]')
 	.action(function (name, version) {
 		version = version || '0.0.1';
 		if (version.split('.').length !== 3) {
@@ -534,7 +534,7 @@ cli
 		fs.readFile(path.resolve(cli.package), 'utf8', function (e, data) {
 			if (e) {
 				// Package doesn't exist ... expected
-				console.log('Initializing new ripple project.');
+				console.log('Initializing new ripple project');
 				if (!methods.checkLive(true)) {
 					// No git repo yet
 					console.log('  creating new git repository where there was none');
