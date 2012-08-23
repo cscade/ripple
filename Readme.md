@@ -1,10 +1,18 @@
 # Ripple
 
-## Command line git repository & branch manager, with (plans for) release tools.
+## Command line git repository & branch manager
 
-ripple was inspired by and does it's best to adhere to the principals described in Vincent Driessen's excellent blog post; [A successful Git branching model](http://nvie.com/posts/a-successful-git-branching-model/). By automating and enforcing a strict yet very logical branching model, ripple both makes working with your git repository easier as well as more robust and well documented at the same time.
+Ripple was inspired by and does it's best to adhere to the principals described in Vincent Driessen's excellent blog post; [A successful Git branching model](http://nvie.com/posts/a-successful-git-branching-model/).
+
+By automating and enforcing a strict yet very logical branching model, ripple both makes working with your git repository easier as well as more robust and well documented at the same time.
+
+## Installation
+
+	npm install -g ripple
 
 ## What it can do for you
+
+Ripple will make your branch model simple, consistent, repeatable, and descriptive. If you are an individual developer, it will help you stay organized. If you work as part of a team, it will work wonders on keeping your team on the same page, and keeping you from tripping over each other.
 
 * Create a new git repository from scratch, with appropriate tree structure.
 * Create a new package.json and start managing an existing get repo / project.
@@ -16,7 +24,7 @@ ripple was inspired by and does it's best to adhere to the principals described 
 * Automatically tag releases with the correct integration version number.
 * Keep you adhered to the principals outlined in "A successful git branching model".
 	* No more than one active hotfix
-	* Make sure you apply hotfixes and releases in the right order
+	* Make sure you apply hotfixes and releases in the correct order
 
 ## Examples
 
@@ -76,7 +84,7 @@ All examples below show the branch that is currently checked out within the prom
 	
 	
 
-## Help output
+## Help
 
 	iMac:Ripple cscade $ ripple wtf
 
@@ -117,20 +125,13 @@ All examples below show the branch that is currently checked out within the prom
 
 ## Where it's meant to work
 
-I designed ripple for my development cycle, but it should integrate well into many existing workflows. It makes the following assumptions about your environment:
+Ripple makes the following assumptions about your environment:
 
-* You have node.js installed on your development system
-* You have NPM
-* You use git for your project, and have at least a "master" and "develop" branch
-* Projects you manage with ripple have a package.json file containing at least "name" and "version" keys
+* You have `node.js` & `npm`
+* You use git
+* Projects have a package.json file containing at least "name" and "version" keys
 
-That's it. Projects can be in any language, and contain anything git can handle. ripple is available as a global executable in your terminal just like git, and uses git-like command options.
-
-## Installation
-
-Install ripple globally, so you will have access to it's binary.
-
-	npm install -g ripple
+That's it. Projects can be in any language, and contain anything git can handle. Ripple is available as a global executable in your terminal just like git, and uses git-like command options.
 
 ## License 
 

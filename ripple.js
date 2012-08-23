@@ -93,7 +93,7 @@ methods.file.read = function (uri, next) {
 /**
  * write
  * 
- * Write the passed object as a JSON file to the privded uri.
+ * Write the passed object as a JSON file to the provided uri.
  * 
  * @param {Object} doc
  * @param {String} uri
