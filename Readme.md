@@ -30,6 +30,8 @@ Ripple will make your branch model simple, consistent, repeatable, and descripti
 
 All examples below show the branch that is currently checked out within the prompt.
 
+### Create a new project from scratch
+
 	iMac:test cscade $ ripple init test
 	Initializing new ripple project
 	  creating new git repository where there was none
@@ -37,23 +39,25 @@ All examples below show the branch that is currently checked out within the prom
 	  commiting package.json
 	  creating new "develop" branch
 	ok.
-	
+
+### Work on a feature
 
 	iMac:Ripple cscade [develop] $ ripple start feature docs
 	Starting feature branch
 	  creating new docs branch from "develop"
 	ok.
 	
-	... do stuff, commit things ...
+... do stuff, commit things ...
 	
 	iMac:Ripple cscade [docs] $ ripple finish feature 
 	Finishing feature branch
 	  merging docs into develop
 	  removing docs branch
 	ok.
+
+### Create a release
 	
-	
-	iMac:Ripple cscade [my_feature] $ ripple start release
+	iMac:Ripple cscade [develop] $ ripple start release
 	Starting release branch
 	  creating new release branch from "develop"
 	  updating version: 0.0.12 -> 0.0.13
@@ -62,17 +66,7 @@ All examples below show the branch that is currently checked out within the prom
 	 1 files changed, 1 insertions(+), 1 deletions(-)
 	ok.
 	
-	... fix bugs, polish, do other stuff back over on develop, whatever ...
-	
-	iMac:Ripple cscade [release-0.0.13] $ ripple status
-	Status
-	  Current release: ripple 0.0.13
-	  With a package located at: /Users/cscade/Modules/Ripple/package.json
-	  Working tree is clean, current branch is release-0.0.13.
-	  You cannot create a release branch, one already exists.
-	  You may create a hotfix branch with "ripple start hotfix"
-	ok.
-	
+... polish, update your docs, etc ...
 	
 	iMac:Ripple cscade [release-0.0.13] $ ripple finish release
 	Finishing release branch
@@ -81,8 +75,6 @@ All examples below show the branch that is currently checked out within the prom
 	  merging release-0.0.13 into develop
 	  removing release-0.0.13 branch
 	ok.
-	
-	
 
 ## Help
 
