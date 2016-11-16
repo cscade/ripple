@@ -619,6 +619,12 @@ cli
 		properties.branch.execution.dirty = stdout.trim() === '0';
 		next();
 	})
+	.send('git status|grep -c "working tree clean"', function (e, next, stdout) {
+		// Second check for different git version.
+		if (properties.branch.execution.dirty === false) return next();
+		properties.branch.execution.dirty = stdout.trim() === '0';
+		next();
+	})
 	.send('git branch --no-color|sed -e "/^[^*]/d" -e "s/* \(.*\)/\ \1/"', function (e, next, stdout) {
 		properties.branch.execution.name = stdout.trim().slice(2);
 		properties.branch.execution.isRelease = properties.branch.execution.name.indexOf('release') !== -1;
